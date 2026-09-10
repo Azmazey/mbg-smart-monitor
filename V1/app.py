@@ -1,4 +1,8 @@
 import os
+# Paksa Keras legacy dan matikan CUDA untuk kestabilan di container Linux
+os.environ["TF_USE_LEGACY_KERAS"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
 import streamlit as st
 import tensorflow as tf
 import numpy as np
@@ -8,7 +12,6 @@ from PIL import Image
 # =========================
 # PATH CONFIGURATION
 # =========================
-# Mendapatkan path direktori V1 secara absolut
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # =========================
@@ -27,7 +30,7 @@ st.markdown("""
 h1, h2, h3, h4, p, div, span { font-family: "Inter", "Poppins", sans-serif; }
 h1, h2, h3, h4 { color: #381E12; }
 
-/* FIX 1: Top Bar Header Streamlit dibuat berwarna soft peach agar tegas & tidak kosong */
+/* Header Streamlit */
 header[data-testid="stHeader"] {
     background-color: #FFE8DC !important;
     border-bottom: 1px solid #FFD0C0 !important;
@@ -48,7 +51,7 @@ section[data-testid="stSidebar"] span {
     font-weight: 600; 
 }
 
-/* FIX 2: Lingkaran Radio Button (Aktif & Non-Aktif) */
+/* Radio Button */
 section[data-testid="stSidebar"] [data-testid="stRadioButton"] [role="radiogroup"] label div[role="radio"] {
     background-color: #FFE8DC !important;
     border: 2px solid #E86A22 !important;
@@ -80,10 +83,9 @@ section[data-testid="stSidebar"] [data-testid="stRadioButton"] [role="radiogroup
 }
 .card-title, .result-title, .upload-title, .dashboard-title { font-size: 18px; font-weight: 700; color: #2B1408; margin-bottom: 8px; }
 .card-description, .result-label, .confidence-label, .dashboard-text { font-size: 13.5px; color: #5C3214 !important; line-height: 1.6; }
-
 .model-status-badge { background: #FFF3EE; border: 1px solid #FFE0D6; border-radius: 12px; padding: 12px 16px; font-size: 13px; font-weight: 700; color: #E86A22; text-align: center; }
 
-/* File Uploader Container & Tombol Upload */
+/* File Uploader */
 [data-testid="stFileUploader"] { background: #FFFFFF; border: 2px dashed #FFCBD9; border-radius: 18px; padding: 12px; }
 [data-testid="stFileUploader"] section { background: #FFF5F2; border-radius: 14px; }
 [data-testid="stFileUploader"] button {
@@ -97,7 +99,7 @@ section[data-testid="stSidebar"] [data-testid="stRadioButton"] [role="radiogroup
     background-color: #C85A17 !important;
 }
 
-/* Primary Buttons */
+/* Buttons */
 .stButton > button { 
     background-color: #E86A22 !important; 
     color: #FFFFFF !important; 
@@ -113,7 +115,7 @@ section[data-testid="stSidebar"] [data-testid="stRadioButton"] [role="radiogroup
     border: none; 
 }
 
-/* Textarea & Placeholder */
+/* Textarea */
 .stTextArea textarea {
     background-color: #FFFFFF !important;
     border: 1px solid #FFCBA4 !important;
@@ -130,14 +132,14 @@ section[data-testid="stSidebar"] [data-testid="stRadioButton"] [role="radiogroup
     box-shadow: 0 0 0 2px rgba(232, 106, 34, 0.2) !important;
 }
 
-/* Results & Confidence Bar */
+/* Results & Confidence */
 .result-value, .sentiment-result { font-size: 30px; font-weight: 800; color: #2B1408; margin-bottom: 25px; }
 .confidence-container { display: flex; align-items: center; gap: 12px; }
 .confidence-bar { flex: 1; height: 12px; background: #FFEAE2; border-radius: 20px; overflow: hidden; }
 .confidence-fill { height: 100%; background: #E86A22; border-radius: 20px; }
 .confidence-percent { min-width: 75px; text-align: right; font-size: 16px; font-weight: 700; color: #381E12; }
 
-/* Comment Items */
+/* Comment Box */
 .comment-box, .comment-item { background: #FFF5F2; border: 1px solid #FFE5DC; border-radius: 13px; padding: 15px; color: #2B1408; font-size: 14px; line-height: 1.6; margin-top: 10px; }
 
 /* Loader */
@@ -153,45 +155,17 @@ section[data-testid="stSidebar"] [data-testid="stRadioButton"] [role="radiogroup
 # LOAD MODELS
 # =========================
 @st.cache_resource
-@st.cache_resource
 def load_fruit_model():
-    class CompatibleDense(tf.keras.layers.Dense):
-        @classmethod
-        def from_config(cls, config):
-            # Bersihkan parameter yang memicu TypeError pada Keras
-            unwanted_keys = ["quantization_config", "dtype", "batch_input_shape"]
-            for key in unwanted_keys:
-                config.pop(key, None)
-            try:
-                return super().from_config(config)
-            except Exception:
-                # Fallback jika argumen konfigurasi masih tidak cocok
-                units = config.get("units", 1)
-                activation = config.get("activation", "linear")
-                layer = cls(units=units, activation=activation)
-                return layer
-
     path_inside = os.path.join(BASE_DIR, "models", "fruit_classifier", "best_scratch_cnn_apple_orange.h5")
     path_root = os.path.join(os.path.dirname(BASE_DIR), "models", "fruit_classifier", "best_scratch_cnn_apple_orange.h5")
     model_path = path_inside if os.path.exists(path_inside) else path_root
 
-    # Gunakan safe_mode=False jika tersedia untuk melewati validasi keras baru
-    try:
-        return tf.keras.models.load_model(
-            model_path, 
-            compile=False, 
-            safe_mode=False, 
-            custom_objects={"Dense": CompatibleDense}
-        )
-    except TypeError:
-        return tf.keras.models.load_model(
-            model_path, 
-            compile=False, 
-            custom_objects={"Dense": CompatibleDense}
-        )
+    # Gunakan tf_keras untuk memuat format legacy Keras 2 tanpa TypeError
+    import tf_keras
+    return tf_keras.models.load_model(model_path, compile=False)
+
 @st.cache_resource
 def load_sentiment_model():
-    # Cek model di dalam V1/models atau di models/ root
     path_inside = os.path.join(BASE_DIR, "models", "sentiment_model", "classic_sentiment_model.pkl")
     path_root = os.path.join(os.path.dirname(BASE_DIR), "models", "sentiment_model", "classic_sentiment_model.pkl")
     model_path = path_inside if os.path.exists(path_inside) else path_root
@@ -203,8 +177,8 @@ def load_sentiment_model():
 # =========================
 def predict_fruit(image, model):
     img_array = np.expand_dims(np.array(image.convert("RGB").resize((128, 128))).astype("float32") / 255.0, axis=0)
-    pred = model.predict(img_array, verbose=0)[0][0]
-    return ("Orange", pred) if pred >= 0.5 else ("Apple", 1 - pred)
+    pred = float(model.predict(img_array, verbose=0)[0][0])
+    return ("Orange", pred) if pred >= 0.5 else ("Apple", 1.0 - pred)
 
 def predict_sentiment(text, model):
     pred = model.predict([text])[0]
@@ -231,9 +205,7 @@ if "v1_comments" not in st.session_state:
     st.session_state.v1_comments = []
 
 st.sidebar.markdown('<div style="font-size:22px; font-weight:800; color:#E86A22; margin-bottom:25px;">🍱 MBG Smart Monitor</div>', unsafe_allow_html=True)
-
 page = st.sidebar.radio("Menu", ["Dashboard", "Fruit Detector", "MBG Sentiment"])
-
 st.sidebar.markdown("---")
 st.sidebar.caption("Version 1.0")
 
@@ -314,6 +286,7 @@ elif page == "MBG Sentiment":
             colors = {"Positive": "#2E7D32", "Negative": "#D32F2F", "Neutral": "#E65100"}
             s_color = colors.get(sentiment, "#E65100")
 
+            # Ditampilkan tanpa bar akurasi
             st.markdown(f"""
             <div class="result-card">
                 <div class="result-title">Hasil Analisis</div>
@@ -322,12 +295,6 @@ elif page == "MBG Sentiment":
                 <div style="height:22px;"></div>
                 <div class="result-label">Hasil Sentimen:</div>
                 <div class="sentiment-result" style="color:{s_color};">● {sentiment}</div>
-                <div class="confidence-label">Akurasi:</div>
-                <div class="confidence-container">
-                    <div class="confidence-bar"><div class="confidence-fill" style="width:100%;"></div></div>
-                    <div class="confidence-percent">-</div>
-                </div>
-                <div style="font-size:12px; color:#8C5B3F; margin-top:8px;">Model V1 tidak menyediakan nilai confidence.</div>
             </div>""", unsafe_allow_html=True)
 
     if st.session_state.v1_comments:
