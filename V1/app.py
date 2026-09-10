@@ -1,10 +1,9 @@
 import os
-import inspect
+import json
+import h5py
 
-# Matikan deteksi GPU CUDA agar ramah container Linux
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
-os.environ["TF_USE_LEGACY_KERAS"] = "1"
 
 import streamlit as st
 import tensorflow as tf
@@ -27,13 +26,11 @@ st.set_page_config(page_title="MBG Smart Monitor V1", page_icon="🍱", layout="
 # =========================
 st.markdown("""
 <style>
-/* Background Utama */
 .stApp { background-color: #FFF8F5; }
 .main .block-container { padding-top: 2rem; padding-bottom: 3rem; max-width: 1200px; }
 h1, h2, h3, h4, p, div, span { font-family: "Inter", "Poppins", sans-serif; }
 h1, h2, h3, h4 { color: #381E12; }
 
-/* Header Streamlit */
 header[data-testid="stHeader"] {
     background-color: #FFE8DC !important;
     border-bottom: 1px solid #FFD0C0 !important;
@@ -42,7 +39,6 @@ header[data-testid="stHeader"] * {
     color: #5C3214 !important;
 }
 
-/* Sidebar Theme */
 section[data-testid="stSidebar"] { 
     background-color: #FFF1EC; 
     border-right: 1px solid #FFE0D6; 
@@ -54,7 +50,6 @@ section[data-testid="stSidebar"] span {
     font-weight: 600; 
 }
 
-/* Radio Button */
 section[data-testid="stSidebar"] [data-testid="stRadioButton"] [role="radiogroup"] label div[role="radio"] {
     background-color: #FFE8DC !important;
     border: 2px solid #E86A22 !important;
@@ -67,7 +62,6 @@ section[data-testid="stSidebar"] [data-testid="stRadioButton"] [role="radiogroup
     background-color: #FFFFFF !important;
 }
 
-/* Header Component */
 .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
 .header-left { display: flex; align-items: center; gap: 15px; }
 .header-icon { width: 55px; height: 55px; border-radius: 14px; background: #FFE5DC; display: flex; align-items: center; justify-content: center; font-size: 25px; border: 1px solid #FFD4C4; }
@@ -75,7 +69,6 @@ section[data-testid="stSidebar"] [data-testid="stRadioButton"] [role="radiogroup
 .header-subtitle { font-size: 14px; color: #5C3214 !important; font-weight: 500; margin-top: 3px; }
 .status-badge { background: #FFEBE3; color: #C85A17; border-radius: 20px; padding: 8px 18px; font-size: 13px; font-weight: 700; border: 1px solid #FFD4C4; }
 
-/* Cards Styling */
 .dashboard-card, .custom-card, .result-card, .comment-list-card, .loading-box { 
     background: #FFFFFF; 
     border: 1px solid #FFE5DC; 
@@ -88,7 +81,6 @@ section[data-testid="stSidebar"] [data-testid="stRadioButton"] [role="radiogroup
 .card-description, .result-label, .confidence-label, .dashboard-text { font-size: 13.5px; color: #5C3214 !important; line-height: 1.6; }
 .model-status-badge { background: #FFF3EE; border: 1px solid #FFE0D6; border-radius: 12px; padding: 12px 16px; font-size: 13px; font-weight: 700; color: #E86A22; text-align: center; }
 
-/* File Uploader */
 [data-testid="stFileUploader"] { background: #FFFFFF; border: 2px dashed #FFCBD9; border-radius: 18px; padding: 12px; }
 [data-testid="stFileUploader"] section { background: #FFF5F2; border-radius: 14px; }
 [data-testid="stFileUploader"] button {
@@ -102,7 +94,6 @@ section[data-testid="stSidebar"] [data-testid="stRadioButton"] [role="radiogroup
     background-color: #C85A17 !important;
 }
 
-/* Buttons */
 .stButton > button { 
     background-color: #E86A22 !important; 
     color: #FFFFFF !important; 
@@ -118,7 +109,6 @@ section[data-testid="stSidebar"] [data-testid="stRadioButton"] [role="radiogroup
     border: none; 
 }
 
-/* Textarea */
 .stTextArea textarea {
     background-color: #FFFFFF !important;
     border: 1px solid #FFCBA4 !important;
@@ -135,17 +125,13 @@ section[data-testid="stSidebar"] [data-testid="stRadioButton"] [role="radiogroup
     box-shadow: 0 0 0 2px rgba(232, 106, 34, 0.2) !important;
 }
 
-/* Results & Confidence */
 .result-value, .sentiment-result { font-size: 30px; font-weight: 800; color: #2B1408; margin-bottom: 25px; }
 .confidence-container { display: flex; align-items: center; gap: 12px; }
 .confidence-bar { flex: 1; height: 12px; background: #FFEAE2; border-radius: 20px; overflow: hidden; }
 .confidence-fill { height: 100%; background: #E86A22; border-radius: 20px; }
 .confidence-percent { min-width: 75px; text-align: right; font-size: 16px; font-weight: 700; color: #381E12; }
 
-/* Comment Box */
 .comment-box, .comment-item { background: #FFF5F2; border: 1px solid #FFE5DC; border-radius: 13px; padding: 15px; color: #2B1408; font-size: 14px; line-height: 1.6; margin-top: 10px; }
-
-/* Loader */
 .loader { width: 42px; height: 42px; border: 4px solid #FFEAE2; border-top: 4px solid #E86A22; border-radius: 50%; animation: spin 1s linear infinite; margin: auto; }
 .loading-text { margin-top: 14px; color: #5C3214; font-size: 13px; }
 
@@ -153,52 +139,6 @@ section[data-testid="stSidebar"] [data-testid="stRadioButton"] [role="radiogroup
 @media (max-width: 768px) { .page-header { flex-direction: column; align-items: flex-start; gap: 15px; } .header-title { font-size: 27px; } }
 </style>
 """, unsafe_allow_html=True)
-
-# ==========================================
-# UNIVERSAL LAYER DESERIALIZATION SANITIZER
-# ==========================================
-def apply_universal_keras_patch():
-    """Menyaring argumen asing dari semua layer Keras secara global"""
-    try:
-        import tf_keras
-        target_layer_cls = tf_keras.engine.base_layer.Layer
-    except Exception:
-        try:
-            target_layer_cls = tf.keras.layers.Layer
-        except Exception:
-            return
-
-    original_from_config = target_layer_cls.from_config
-
-    @classmethod
-    def safe_from_config(cls, config):
-        cfg = dict(config)
-        # Adaptasi InputLayer
-        if "batch_shape" in cfg and "batch_input_shape" not in cfg:
-            cfg["batch_input_shape"] = cfg.pop("batch_shape")
-        
-        # Bersihkan keyword Keras 3 yang tidak dikenali Keras 2
-        unwanted_keywords = ["optional", "quantization_config", "batch_shape"]
-        for key in unwanted_keywords:
-            cfg.pop(key, None)
-
-        try:
-            # Filter hanya parameter yang diterima oleh __init__ kelas terkait
-            sig = inspect.signature(cls.__init__)
-            params = sig.parameters
-            has_var_kwargs = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values())
-            
-            if not has_var_kwargs:
-                valid_keys = set(params.keys())
-                cfg = {k: v for k, v in cfg.items() if k in valid_keys}
-            return cls(**cfg)
-        except Exception:
-            return original_from_config(cfg)
-
-    target_layer_cls.from_config = safe_from_config
-
-# Terapkan patch sebelum pemanggilan model apa pun
-apply_universal_keras_patch()
 
 # =========================
 # LOAD MODELS
@@ -209,12 +149,44 @@ def load_fruit_model():
     path_root = os.path.join(os.path.dirname(BASE_DIR), "models", "fruit_classifier", "best_scratch_cnn_apple_orange.h5")
     model_path = path_inside if os.path.exists(path_inside) else path_root
 
-    # Coba via tf_keras dulu (karena tf-keras ada di requirements.txt)
+    # Pemulihan Arsitektur Otomatis dari Raw JSON HDF5 (Bebas Error Keras)
     try:
+        with h5py.File(model_path, mode="r") as f:
+            model_config_raw = f.attrs.get("model_config")
+            if isinstance(model_config_raw, bytes):
+                model_config_raw = model_config_raw.decode("utf-8")
+            config_dict = json.loads(model_config_raw)
+
+        # Sanitasi config dictionary secara rekursif
+        def clean_config(obj):
+            if isinstance(obj, dict):
+                # Bersihkan keyword Keras 3 yang memicu TypeError di Keras 2
+                if "batch_shape" in obj and "batch_input_shape" not in obj:
+                    obj["batch_input_shape"] = obj.pop("batch_shape")
+                for key in ["batch_shape", "optional", "quantization_config"]:
+                    obj.pop(key, None)
+                return {k: clean_config(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [clean_config(item) for item in obj]
+            return obj
+
+        cleaned_config = clean_config(config_dict)
+        
+        # Bangun model dari konfigurasi yang sudah bersih
+        try:
+            import tf_keras
+            model = tf_keras.models.model_from_json(json.dumps(cleaned_config))
+        except Exception:
+            model = tf.keras.models.model_from_json(json.dumps(cleaned_config))
+
+        # Muat bobot langsung
+        model.load_weights(model_path)
+        return model
+
+    except Exception:
+        # Fallback cadangan jika pembedahan json gagal
         import tf_keras
         return tf_keras.models.load_model(model_path, compile=False)
-    except Exception:
-        return tf.keras.models.load_model(model_path, compile=False)
 
 @st.cache_resource
 def load_sentiment_model():
@@ -338,7 +310,6 @@ elif page == "MBG Sentiment":
             colors = {"Positive": "#2E7D32", "Negative": "#D32F2F", "Neutral": "#E65100"}
             s_color = colors.get(sentiment, "#E65100")
 
-            # Ditampilkan bersih tanpa bar akurasi
             st.markdown(f"""
             <div class="result-card">
                 <div class="result-title">Hasil Analisis</div>
