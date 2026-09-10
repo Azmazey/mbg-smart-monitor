@@ -1,6 +1,10 @@
 import os
-os.environ["TF_USE_LEGACY_KERAS"] = "1"
+import inspect
+
+# Matikan deteksi GPU CUDA agar ramah container Linux
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+os.environ["TF_USE_LEGACY_KERAS"] = "1"
 
 import streamlit as st
 import tensorflow as tf
@@ -150,6 +154,52 @@ section[data-testid="stSidebar"] [data-testid="stRadioButton"] [role="radiogroup
 </style>
 """, unsafe_allow_html=True)
 
+# ==========================================
+# UNIVERSAL LAYER DESERIALIZATION SANITIZER
+# ==========================================
+def apply_universal_keras_patch():
+    """Menyaring argumen asing dari semua layer Keras secara global"""
+    try:
+        import tf_keras
+        target_layer_cls = tf_keras.engine.base_layer.Layer
+    except Exception:
+        try:
+            target_layer_cls = tf.keras.layers.Layer
+        except Exception:
+            return
+
+    original_from_config = target_layer_cls.from_config
+
+    @classmethod
+    def safe_from_config(cls, config):
+        cfg = dict(config)
+        # Adaptasi InputLayer
+        if "batch_shape" in cfg and "batch_input_shape" not in cfg:
+            cfg["batch_input_shape"] = cfg.pop("batch_shape")
+        
+        # Bersihkan keyword Keras 3 yang tidak dikenali Keras 2
+        unwanted_keywords = ["optional", "quantization_config", "batch_shape"]
+        for key in unwanted_keywords:
+            cfg.pop(key, None)
+
+        try:
+            # Filter hanya parameter yang diterima oleh __init__ kelas terkait
+            sig = inspect.signature(cls.__init__)
+            params = sig.parameters
+            has_var_kwargs = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values())
+            
+            if not has_var_kwargs:
+                valid_keys = set(params.keys())
+                cfg = {k: v for k, v in cfg.items() if k in valid_keys}
+            return cls(**cfg)
+        except Exception:
+            return original_from_config(cfg)
+
+    target_layer_cls.from_config = safe_from_config
+
+# Terapkan patch sebelum pemanggilan model apa pun
+apply_universal_keras_patch()
+
 # =========================
 # LOAD MODELS
 # =========================
@@ -159,18 +209,12 @@ def load_fruit_model():
     path_root = os.path.join(os.path.dirname(BASE_DIR), "models", "fruit_classifier", "best_scratch_cnn_apple_orange.h5")
     model_path = path_inside if os.path.exists(path_inside) else path_root
 
-    import tf_keras
-
-    # Patch from_config langsung pada layer base tf_keras untuk membuang atribut incompat
-    original_from_config = tf_keras.layers.Dense.from_config
-
-    def patched_from_config(cls, config):
-        config.pop("quantization_config", None)
-        return original_from_config(config)
-
-    tf_keras.layers.Dense.from_config = classmethod(patched_from_config)
-
-    return tf_keras.models.load_model(model_path, compile=False)
+    # Coba via tf_keras dulu (karena tf-keras ada di requirements.txt)
+    try:
+        import tf_keras
+        return tf_keras.models.load_model(model_path, compile=False)
+    except Exception:
+        return tf.keras.models.load_model(model_path, compile=False)
 
 @st.cache_resource
 def load_sentiment_model():
@@ -294,6 +338,7 @@ elif page == "MBG Sentiment":
             colors = {"Positive": "#2E7D32", "Negative": "#D32F2F", "Neutral": "#E65100"}
             s_color = colors.get(sentiment, "#E65100")
 
+            # Ditampilkan bersih tanpa bar akurasi
             st.markdown(f"""
             <div class="result-card">
                 <div class="result-title">Hasil Analisis</div>
