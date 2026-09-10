@@ -1,8 +1,15 @@
+import os
 import streamlit as st
 import tensorflow as tf
 import numpy as np
 import joblib
 from PIL import Image
+
+# =========================
+# PATH CONFIGURATION
+# =========================
+# Mendapatkan path direktori V1 secara absolut
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # =========================
 # PAGE CONFIG
@@ -152,11 +159,22 @@ def load_fruit_model():
         def from_config(cls, config):
             config.pop("quantization_config", None)
             return super().from_config(config)
-    return tf.keras.models.load_model("models/fruit_classifier/best_scratch_cnn_apple_orange.h5", compile=False, custom_objects={"Dense": CompatibleDense})
+
+    # Cek model di dalam V1/models atau di models/ root
+    path_inside = os.path.join(BASE_DIR, "models", "fruit_classifier", "best_scratch_cnn_apple_orange.h5")
+    path_root = os.path.join(os.path.dirname(BASE_DIR), "models", "fruit_classifier", "best_scratch_cnn_apple_orange.h5")
+    model_path = path_inside if os.path.exists(path_inside) else path_root
+
+    return tf.keras.models.load_model(model_path, compile=False, custom_objects={"Dense": CompatibleDense})
 
 @st.cache_resource
 def load_sentiment_model():
-    return joblib.load("models/sentiment_model/classic_sentiment_model.pkl")
+    # Cek model di dalam V1/models atau di models/ root
+    path_inside = os.path.join(BASE_DIR, "models", "sentiment_model", "classic_sentiment_model.pkl")
+    path_root = os.path.join(os.path.dirname(BASE_DIR), "models", "sentiment_model", "classic_sentiment_model.pkl")
+    model_path = path_inside if os.path.exists(path_inside) else path_root
+
+    return joblib.load(model_path)
 
 # =========================
 # HELPER FUNCTIONS
