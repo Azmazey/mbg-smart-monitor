@@ -1,5 +1,4 @@
 import os
-# Paksa Keras legacy dan matikan CUDA untuk kestabilan di container Linux
 os.environ["TF_USE_LEGACY_KERAS"] = "1"
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
@@ -111,7 +110,7 @@ section[data-testid="stSidebar"] [data-testid="stRadioButton"] [role="radiogroup
 }
 .stButton > button:hover { 
     background-color: #C85A17 !important; 
-    color: #FFFFFF !important;
+    color: #FFFFFF !important; 
     border: none; 
 }
 
@@ -154,42 +153,24 @@ section[data-testid="stSidebar"] [data-testid="stRadioButton"] [role="radiogroup
 # =========================
 # LOAD MODELS
 # =========================
-# =========================
-# LOAD MODELS
-# =========================
 @st.cache_resource
 def load_fruit_model():
     path_inside = os.path.join(BASE_DIR, "models", "fruit_classifier", "best_scratch_cnn_apple_orange.h5")
     path_root = os.path.join(os.path.dirname(BASE_DIR), "models", "fruit_classifier", "best_scratch_cnn_apple_orange.h5")
     model_path = path_inside if os.path.exists(path_inside) else path_root
 
-    # Bangun arsitektur Scratch CNN asli tanpa membaca config layer dari .h5
-    model = tf.keras.Sequential([
-        tf.keras.layers.Input(shape=(128, 128, 3)),
-        tf.keras.layers.Conv2D(32, (3, 3), activation='relu'),
-        tf.keras.layers.MaxPooling2D(2, 2),
-        tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
-        tf.keras.layers.MaxPooling2D(2, 2),
-        tf.keras.layers.Conv2D(128, (3, 3), activation='relu'),
-        tf.keras.layers.MaxPooling2D(2, 2),
-        tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(128, activation='relu'),
-        tf.keras.layers.Dropout(0.5),
-        tf.keras.layers.Dense(1, activation='sigmoid')
-    ])
+    import tf_keras
 
-    try:
-        # Load weights melewati konflik from_config Keras
-        model.load_weights(model_path)
-    except Exception:
-        # Fallback jika arsitektur menggunakan layer berbeda, bypass custom objects
-        try:
-            import tf_keras
-            return tf_keras.models.load_model(model_path, compile=False, safe_mode=False)
-        except Exception:
-            return tf.keras.models.load_model(model_path, compile=False, safe_mode=False)
+    # Patch from_config langsung pada layer base tf_keras untuk membuang atribut incompat
+    original_from_config = tf_keras.layers.Dense.from_config
 
-    return model
+    def patched_from_config(cls, config):
+        config.pop("quantization_config", None)
+        return original_from_config(config)
+
+    tf_keras.layers.Dense.from_config = classmethod(patched_from_config)
+
+    return tf_keras.models.load_model(model_path, compile=False)
 
 @st.cache_resource
 def load_sentiment_model():
@@ -313,7 +294,6 @@ elif page == "MBG Sentiment":
             colors = {"Positive": "#2E7D32", "Negative": "#D32F2F", "Neutral": "#E65100"}
             s_color = colors.get(sentiment, "#E65100")
 
-            # Ditampilkan tanpa bar akurasi
             st.markdown(f"""
             <div class="result-card">
                 <div class="result-title">Hasil Analisis</div>
