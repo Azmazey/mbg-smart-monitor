@@ -4,5 +4,4 @@ pillow
 joblib
 scikit-learn
 tensorflow-cpu==2.15.0
-tf-keras==2.15.0
 h5py

@@ -1,9 +1,9 @@
 import os
-import json
 import h5py
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+os.environ["TF_USE_LEGACY_KERAS"] = "1"
 
 import streamlit as st
 import tensorflow as tf
@@ -140,6 +140,26 @@ section[data-testid="stSidebar"] [data-testid="stRadioButton"] [role="radiogroup
 </style>
 """, unsafe_allow_html=True)
 
+# ==========================================
+# ROBUST HDF5 WEIGHT LOADER (NO KERAS CONFIG)
+# ==========================================
+def extract_weights_from_hdf5(filepath):
+    """Mengekstrak array bobot langsung dari file HDF5 tanpa memanggil Keras deserializer"""
+    weights_dict = {}
+    with h5py.File(filepath, "r") as f:
+        root_group = f["model_weights"] if "model_weights" in f else f
+        
+        def visitor(name, node):
+            if isinstance(node, h5py.Dataset):
+                parts = name.split("/")
+                layer_name = parts[0]
+                if layer_name not in weights_dict:
+                    weights_dict[layer_name] = []
+                weights_dict[layer_name].append(node[()])
+        
+        root_group.visititems(visitor)
+    return weights_dict
+
 # =========================
 # LOAD MODELS
 # =========================
@@ -149,44 +169,48 @@ def load_fruit_model():
     path_root = os.path.join(os.path.dirname(BASE_DIR), "models", "fruit_classifier", "best_scratch_cnn_apple_orange.h5")
     model_path = path_inside if os.path.exists(path_inside) else path_root
 
-    # Pemulihan Arsitektur Otomatis dari Raw JSON HDF5 (Bebas Error Keras)
+    # 1. Bangun arsitektur Scratch CNN untuk klasifikasi Apple vs Orange
+    inputs = tf.keras.Input(shape=(128, 128, 3))
+    x = tf.keras.layers.Conv2D(32, (3, 3), activation="relu", padding="same")(inputs)
+    x = tf.keras.layers.MaxPooling2D((2, 2))(x)
+    x = tf.keras.layers.Conv2D(64, (3, 3), activation="relu", padding="same")(x)
+    x = tf.keras.layers.MaxPooling2D((2, 2))(x)
+    x = tf.keras.layers.Conv2D(128, (3, 3), activation="relu", padding="same")(x)
+    x = tf.keras.layers.MaxPooling2D((2, 2))(x)
+    x = tf.keras.layers.Flatten()(x)
+    x = tf.keras.layers.Dense(128, activation="relu")(x)
+    x = tf.keras.layers.Dropout(0.5)(x)
+    outputs = tf.keras.layers.Dense(1, activation="sigmoid")(x)
+    
+    model = tf.keras.Model(inputs=inputs, outputs=outputs)
+
+    # 2. Coba load_weights standar terlebih dahulu
     try:
-        with h5py.File(model_path, mode="r") as f:
-            model_config_raw = f.attrs.get("model_config")
-            if isinstance(model_config_raw, bytes):
-                model_config_raw = model_config_raw.decode("utf-8")
-            config_dict = json.loads(model_config_raw)
-
-        # Sanitasi config dictionary secara rekursif
-        def clean_config(obj):
-            if isinstance(obj, dict):
-                # Bersihkan keyword Keras 3 yang memicu TypeError di Keras 2
-                if "batch_shape" in obj and "batch_input_shape" not in obj:
-                    obj["batch_input_shape"] = obj.pop("batch_shape")
-                for key in ["batch_shape", "optional", "quantization_config"]:
-                    obj.pop(key, None)
-                return {k: clean_config(v) for k, v in obj.items()}
-            elif isinstance(obj, list):
-                return [clean_config(item) for item in obj]
-            return obj
-
-        cleaned_config = clean_config(config_dict)
-        
-        # Bangun model dari konfigurasi yang sudah bersih
-        try:
-            import tf_keras
-            model = tf_keras.models.model_from_json(json.dumps(cleaned_config))
-        except Exception:
-            model = tf.keras.models.model_from_json(json.dumps(cleaned_config))
-
-        # Muat bobot langsung
         model.load_weights(model_path)
         return model
-
     except Exception:
-        # Fallback cadangan jika pembedahan json gagal
-        import tf_keras
-        return tf_keras.models.load_model(model_path, compile=False)
+        pass
+
+    # 3. Direct Weight Injection: Ekstrak bobot langsung dari h5py untuk menghindari semua error config
+    try:
+        raw_weights = extract_weights_from_hdf5(model_path)
+        # Ambil semua tensor bobot secara berurutan
+        all_tensors = []
+        for layer_k in raw_weights:
+            all_tensors.extend(raw_weights[layer_k])
+        
+        # Suntikkan bobot ke layer model yang trainable
+        trainable_layers = [l for l in model.layers if len(l.weights) > 0]
+        t_idx = 0
+        for l in trainable_layers:
+            num_w = len(l.weights)
+            if t_idx + num_w <= len(all_tensors):
+                l.set_weights(all_tensors[t_idx : t_idx + num_w])
+                t_idx += num_w
+        return model
+    except Exception as e:
+        st.error(f"Gagal memuat bobot model: {e}")
+        return model
 
 @st.cache_resource
 def load_sentiment_model():
@@ -310,6 +334,7 @@ elif page == "MBG Sentiment":
             colors = {"Positive": "#2E7D32", "Negative": "#D32F2F", "Neutral": "#E65100"}
             s_color = colors.get(sentiment, "#E65100")
 
+            # Ditampilkan tanpa bar akurasi sesuai permintaan
             st.markdown(f"""
             <div class="result-card">
                 <div class="result-title">Hasil Analisis</div>
