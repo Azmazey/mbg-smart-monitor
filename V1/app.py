@@ -156,13 +156,45 @@ section[data-testid="stSidebar"] [data-testid="stRadioButton"] [role="radiogroup
 # =========================
 @st.cache_resource
 def load_fruit_model():
-    path_inside = os.path.join(BASE_DIR, "models", "fruit_classifier", "best_scratch_cnn_apple_orange.h5")
-    path_root = os.path.join(os.path.dirname(BASE_DIR), "models", "fruit_classifier", "best_scratch_cnn_apple_orange.h5")
+    path_inside = os.path.join(
+        BASE_DIR,
+        "models",
+        "fruit_classifier",
+        "best_scratch_cnn_apple_orange.h5"
+    )
+
+    path_root = os.path.join(
+        os.path.dirname(BASE_DIR),
+        "models",
+        "fruit_classifier",
+        "best_scratch_cnn_apple_orange.h5"
+    )
+
     model_path = path_inside if os.path.exists(path_inside) else path_root
 
-    # Gunakan tf_keras untuk memuat format legacy Keras 2 tanpa TypeError
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(
+            f"Model tidak ditemukan:\n{model_path}"
+        )
+
     import tf_keras
-    return tf_keras.models.load_model(model_path, compile=False)
+
+    # Compatibility layer untuk model Keras lama
+    class CompatibleDense(tf_keras.layers.Dense):
+        @classmethod
+        def from_config(cls, config):
+            config.pop("quantization_config", None)
+            return super().from_config(config)
+
+    model = tf_keras.models.load_model(
+        model_path,
+        compile=False,
+        custom_objects={
+            "Dense": CompatibleDense
+        }
+    )
+
+    return model
 
 @st.cache_resource
 def load_sentiment_model():
