@@ -1,10 +1,10 @@
 streamlit
-numpy<2.0.0
+numpy>=1.23.5,<2.0.0
 pandas
 pillow
-tensorflow-cpu==2.15.0
-torch==2.2.2 --extra-index-url https://download.pytorch.org/whl/cpu
-transformers==4.38.2
-tokenizers>=0.14,<0.19
+tensorflow-cpu==2.16.1
+torch==2.3.0 --extra-index-url https://download.pytorch.org/whl/cpu
+transformers==4.40.2
+tokenizers==0.19.1
 sentencepiece
-protobuf<4.26
+protobuf>=3.20.3,<5.0.0
