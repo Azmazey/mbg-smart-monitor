@@ -2,10 +2,17 @@ import os
 import streamlit as st
 import tensorflow as tf
 import numpy as np
-import torch
 import pandas as pd
 from PIL import Image
+import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
+
+# Matikan deteksi GPU oneDNN/CUDA agar tidak memicu memory clash
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
+
 
 # =========================================================
 # PAGE CONFIG & PATHS
@@ -486,7 +493,7 @@ if page == "Dashboard":
         render_html("""
 <div class="custom-card">
     <div class="card-title">🍎 Fruit Classification</div>
-    <div class="card-description">Menggunakan model MobileNetV2 untuk mengklasifikasikan buah menjadi Apple atau Orange secara presisi.</div>
+    <div class="card-description">Menggunakan model MobileNetV2 untuk mengklasifikasikan buah menjadi Apple atau Orange.</div>
     <div class="menu-box">Model: MobileNetV2 &nbsp; • &nbsp; Status: Ready</div>
 </div>
         """)
