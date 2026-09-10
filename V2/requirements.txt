@@ -1,6 +1,10 @@
 streamlit
-tensorflow
-transformers
-torch
-numpy
+numpy<2.0.0
+pandas
 pillow
+tensorflow-cpu==2.15.0
+torch==2.2.2 --extra-index-url https://download.pytorch.org/whl/cpu
+transformers==4.38.2
+tokenizers>=0.14,<0.19
+sentencepiece
+protobuf<4.26
