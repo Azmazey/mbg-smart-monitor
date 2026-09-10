@@ -1,0 +1,22 @@
+artifact_path: file:///C:/Users/asus/Documents/mbg-smart-monitor/mlruns/1/models/m-dd2b5287d3a444c6afd1d9ca3ebf82bd/artifacts
+flavors:
+  python_function:
+    data: data
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.tensorflow
+    python_version: 3.10.4
+  tensorflow:
+    code: null
+    data: data
+    keras_version: 2.21.0
+    model_type: keras
+    save_format: tf
+mlflow_version: 3.16.0
+model_id: m-dd2b5287d3a444c6afd1d9ca3ebf82bd
+model_size_bytes: 9615285
+model_uuid: m-dd2b5287d3a444c6afd1d9ca3ebf82bd
+prompts: null
+run_id: ca2c0bb05bcb40deb11ed41acc920079
+utc_time_created: '2026-09-10 03:44:15.464559'

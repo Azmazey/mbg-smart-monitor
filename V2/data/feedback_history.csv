@@ -1,0 +1,10 @@
+feedback,sentiment,confidence
+bagus,Positive,0.996268093585968
+bagus ih,Positive,0.9968170523643494
+jelek,Neutral,0.9560685753822328
+tidak bagus,Positive,0.994273841381073
+sangat jelek,Neutral,0.9871684312820436
+hentikan program ini,Negative,0.998124897480011
+oke,Neutral,0.999315857887268
+baik sekali,Neutral,0.9992190599441528
+buahnya busuk,Negative,0.9984276294708252
