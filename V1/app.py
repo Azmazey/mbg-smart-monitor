@@ -154,45 +154,40 @@ section[data-testid="stSidebar"] [data-testid="stRadioButton"] [role="radiogroup
 # =========================
 # LOAD MODELS
 # =========================
+# =========================
+# LOAD MODELS
+# =========================
 @st.cache_resource
 def load_fruit_model():
-    path_inside = os.path.join(
-        BASE_DIR,
-        "models",
-        "fruit_classifier",
-        "best_scratch_cnn_apple_orange.h5"
-    )
-
-    path_root = os.path.join(
-        os.path.dirname(BASE_DIR),
-        "models",
-        "fruit_classifier",
-        "best_scratch_cnn_apple_orange.h5"
-    )
-
+    path_inside = os.path.join(BASE_DIR, "models", "fruit_classifier", "best_scratch_cnn_apple_orange.h5")
+    path_root = os.path.join(os.path.dirname(BASE_DIR), "models", "fruit_classifier", "best_scratch_cnn_apple_orange.h5")
     model_path = path_inside if os.path.exists(path_inside) else path_root
 
-    if not os.path.exists(model_path):
-        raise FileNotFoundError(
-            f"Model tidak ditemukan:\n{model_path}"
-        )
+    # Bangun arsitektur Scratch CNN asli tanpa membaca config layer dari .h5
+    model = tf.keras.Sequential([
+        tf.keras.layers.Input(shape=(128, 128, 3)),
+        tf.keras.layers.Conv2D(32, (3, 3), activation='relu'),
+        tf.keras.layers.MaxPooling2D(2, 2),
+        tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
+        tf.keras.layers.MaxPooling2D(2, 2),
+        tf.keras.layers.Conv2D(128, (3, 3), activation='relu'),
+        tf.keras.layers.MaxPooling2D(2, 2),
+        tf.keras.layers.Flatten(),
+        tf.keras.layers.Dense(128, activation='relu'),
+        tf.keras.layers.Dropout(0.5),
+        tf.keras.layers.Dense(1, activation='sigmoid')
+    ])
 
-    import tf_keras
-
-    # Compatibility layer untuk model Keras lama
-    class CompatibleDense(tf_keras.layers.Dense):
-        @classmethod
-        def from_config(cls, config):
-            config.pop("quantization_config", None)
-            return super().from_config(config)
-
-    model = tf_keras.models.load_model(
-        model_path,
-        compile=False,
-        custom_objects={
-            "Dense": CompatibleDense
-        }
-    )
+    try:
+        # Load weights melewati konflik from_config Keras
+        model.load_weights(model_path)
+    except Exception:
+        # Fallback jika arsitektur menggunakan layer berbeda, bypass custom objects
+        try:
+            import tf_keras
+            return tf_keras.models.load_model(model_path, compile=False, safe_mode=False)
+        except Exception:
+            return tf.keras.models.load_model(model_path, compile=False, safe_mode=False)
 
     return model
 
