@@ -1,15 +1,19 @@
 import os
 import h5py
 
+# Cukup matikan GPU dan optimasi bawaan, HAPUS flag legacy keras
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
-os.environ["TF_USE_LEGACY_KERAS"] = "1"
 
 import streamlit as st
-import tensorflow as tf
 import numpy as np
 import joblib
 from PIL import Image
+
+# Import langsung dari modul keras untuk menghindari lazy_loader ImportError
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, InputLayer
 
 # =========================
 # PATH CONFIGURATION
@@ -141,14 +145,12 @@ section[data-testid="stSidebar"] [data-testid="stRadioButton"] [role="radiogroup
 """, unsafe_allow_html=True)
 
 # ==========================================
-# ROBUST HDF5 WEIGHT LOADER (NO KERAS CONFIG)
+# HDF5 WEIGHT EXTRACTOR
 # ==========================================
 def extract_weights_from_hdf5(filepath):
-    """Mengekstrak array bobot langsung dari file HDF5 tanpa memanggil Keras deserializer"""
     weights_dict = {}
     with h5py.File(filepath, "r") as f:
         root_group = f["model_weights"] if "model_weights" in f else f
-        
         def visitor(name, node):
             if isinstance(node, h5py.Dataset):
                 parts = name.split("/")
@@ -156,7 +158,6 @@ def extract_weights_from_hdf5(filepath):
                 if layer_name not in weights_dict:
                     weights_dict[layer_name] = []
                 weights_dict[layer_name].append(node[()])
-        
         root_group.visititems(visitor)
     return weights_dict
 
@@ -169,37 +170,30 @@ def load_fruit_model():
     path_root = os.path.join(os.path.dirname(BASE_DIR), "models", "fruit_classifier", "best_scratch_cnn_apple_orange.h5")
     model_path = path_inside if os.path.exists(path_inside) else path_root
 
-    # 1. Bangun arsitektur Scratch CNN untuk klasifikasi Apple vs Orange
-    inputs = tf.keras.Input(shape=(128, 128, 3))
-    x = tf.keras.layers.Conv2D(32, (3, 3), activation="relu", padding="same")(inputs)
-    x = tf.keras.layers.MaxPooling2D((2, 2))(x)
-    x = tf.keras.layers.Conv2D(64, (3, 3), activation="relu", padding="same")(x)
-    x = tf.keras.layers.MaxPooling2D((2, 2))(x)
-    x = tf.keras.layers.Conv2D(128, (3, 3), activation="relu", padding="same")(x)
-    x = tf.keras.layers.MaxPooling2D((2, 2))(x)
-    x = tf.keras.layers.Flatten()(x)
-    x = tf.keras.layers.Dense(128, activation="relu")(x)
-    x = tf.keras.layers.Dropout(0.5)(x)
-    outputs = tf.keras.layers.Dense(1, activation="sigmoid")(x)
-    
-    model = tf.keras.Model(inputs=inputs, outputs=outputs)
+    # Bangun model tanpa tf.keras.Input untuk menghindari lazy loading error
+    model = Sequential([
+        InputLayer(input_shape=(128, 128, 3)),
+        Conv2D(32, (3, 3), activation="relu", padding="same"),
+        MaxPooling2D((2, 2)),
+        Conv2D(64, (3, 3), activation="relu", padding="same"),
+        MaxPooling2D((2, 2)),
+        Conv2D(128, (3, 3), activation="relu", padding="same"),
+        MaxPooling2D((2, 2)),
+        Flatten(),
+        Dense(128, activation="relu"),
+        Dropout(0.5),
+        Dense(1, activation="sigmoid")
+    ])
 
-    # 2. Coba load_weights standar terlebih dahulu
     try:
         model.load_weights(model_path)
-        return model
     except Exception:
-        pass
-
-    # 3. Direct Weight Injection: Ekstrak bobot langsung dari h5py untuk menghindari semua error config
-    try:
+        # Suntikan manual jika format .h5 Keras 3 menolak dibaca Keras 2
         raw_weights = extract_weights_from_hdf5(model_path)
-        # Ambil semua tensor bobot secara berurutan
         all_tensors = []
         for layer_k in raw_weights:
             all_tensors.extend(raw_weights[layer_k])
         
-        # Suntikkan bobot ke layer model yang trainable
         trainable_layers = [l for l in model.layers if len(l.weights) > 0]
         t_idx = 0
         for l in trainable_layers:
@@ -207,10 +201,8 @@ def load_fruit_model():
             if t_idx + num_w <= len(all_tensors):
                 l.set_weights(all_tensors[t_idx : t_idx + num_w])
                 t_idx += num_w
-        return model
-    except Exception as e:
-        st.error(f"Gagal memuat bobot model: {e}")
-        return model
+                
+    return model
 
 @st.cache_resource
 def load_sentiment_model():
@@ -334,7 +326,6 @@ elif page == "MBG Sentiment":
             colors = {"Positive": "#2E7D32", "Negative": "#D32F2F", "Neutral": "#E65100"}
             s_color = colors.get(sentiment, "#E65100")
 
-            # Ditampilkan tanpa bar akurasi sesuai permintaan
             st.markdown(f"""
             <div class="result-card">
                 <div class="result-title">Hasil Analisis</div>
