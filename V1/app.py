@@ -153,20 +153,42 @@ section[data-testid="stSidebar"] [data-testid="stRadioButton"] [role="radiogroup
 # LOAD MODELS
 # =========================
 @st.cache_resource
+@st.cache_resource
 def load_fruit_model():
     class CompatibleDense(tf.keras.layers.Dense):
         @classmethod
         def from_config(cls, config):
-            config.pop("quantization_config", None)
-            return super().from_config(config)
+            # Bersihkan parameter yang memicu TypeError pada Keras
+            unwanted_keys = ["quantization_config", "dtype", "batch_input_shape"]
+            for key in unwanted_keys:
+                config.pop(key, None)
+            try:
+                return super().from_config(config)
+            except Exception:
+                # Fallback jika argumen konfigurasi masih tidak cocok
+                units = config.get("units", 1)
+                activation = config.get("activation", "linear")
+                layer = cls(units=units, activation=activation)
+                return layer
 
-    # Cek model di dalam V1/models atau di models/ root
     path_inside = os.path.join(BASE_DIR, "models", "fruit_classifier", "best_scratch_cnn_apple_orange.h5")
     path_root = os.path.join(os.path.dirname(BASE_DIR), "models", "fruit_classifier", "best_scratch_cnn_apple_orange.h5")
     model_path = path_inside if os.path.exists(path_inside) else path_root
 
-    return tf.keras.models.load_model(model_path, compile=False, custom_objects={"Dense": CompatibleDense})
-
+    # Gunakan safe_mode=False jika tersedia untuk melewati validasi keras baru
+    try:
+        return tf.keras.models.load_model(
+            model_path, 
+            compile=False, 
+            safe_mode=False, 
+            custom_objects={"Dense": CompatibleDense}
+        )
+    except TypeError:
+        return tf.keras.models.load_model(
+            model_path, 
+            compile=False, 
+            custom_objects={"Dense": CompatibleDense}
+        )
 @st.cache_resource
 def load_sentiment_model():
     # Cek model di dalam V1/models atau di models/ root
