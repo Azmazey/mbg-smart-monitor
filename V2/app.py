@@ -1,16 +1,17 @@
 import os
-import streamlit as st
-import tensorflow as tf
-import numpy as np
-import pandas as pd
-from PIL import Image
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+
+# Import torch dan transformers lebih dulu
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
-# Matikan deteksi GPU oneDNN/CUDA agar tidak memicu memory clash
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
-os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+# Import library lain setelahnya
+import streamlit as st
+import pandas as pd
+import numpy as np
+from PIL import Image
+import tensorflow as tf
 
 
 
