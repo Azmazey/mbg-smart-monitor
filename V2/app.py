@@ -348,9 +348,13 @@ elif page == "Feedback Analysis":
 </div>
 <div class="sentiment-description">Klasifikasikan umpan balik penerima manfaat program MBG secara otomatis</div>
 <div class="model-version">Model Transformer V02</div>
-<div class="custom-card" style="margin-bottom:15px;">
-    <div class="card-title">Teks Feedback / Komentar</div>
-    <div class="card-description">Ketik atau tempel opini publik atau siswa untuk dievaluasi tingkat kepuasannya.</div>
+<div class="custom-card" style="padding:14px 18px; margin-bottom:10px;">
+    <div class="card-title" style="font-size:15px; margin-bottom:4px;">
+        Teks Feedback / Komentar
+    </div>
+    <div class="card-description" style="font-size:12px; margin-bottom:0;">
+        Ketik atau tempel opini publik atau siswa untuk dievaluasi tingkat kepuasannya.
+    </div>
 </div>
     """)
     feedback = st.text_area("Teks Komentar", placeholder="Contoh: Menu makanannya sangat bergizi dan buahnya segar...", label_visibility="collapsed", height=140)
