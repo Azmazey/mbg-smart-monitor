@@ -25,16 +25,6 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # =========================
 st.set_page_config(page_title="MBG Smart Monitor V1", page_icon="🍱", layout="wide")
 
-# =========================================================
-# SESSION STATE NAVIGATION
-# =========================================================
-# Inisialisasi state untuk navigasi halaman agar bisa diklik dari dashboard
-if "menu_v1" not in st.session_state:
-    st.session_state.menu_v1 = "Dashboard"
-
-def pindah_halaman(halaman_tujuan):
-    st.session_state.menu_v1 = halaman_tujuan
-
 # =========================
 # CUSTOM CSS
 # =========================
@@ -64,24 +54,6 @@ section[data-testid="stSidebar"] span {
     font-weight: 600; 
 }
 
-/* Background Kotak untuk Tulisan Menu di Sidebar (Meniru Gaya V2) */
-section[data-testid="stSidebar"] .stSelectbox label p {
-    background-color: #E86A22;
-    color: #FFFFFF !important;
-    padding: 6px 10px;
-    border-radius: 8px;
-    font-weight: 750;
-    font-size: 13px;
-    text-align: center;
-    width: fit-content;
-    margin: 0 auto 5px auto;
-    box-shadow: 0 3px 8px rgba(232, 106, 34, 0.3);
-}
-
-section[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] [role="button"],
-section[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] [role="button"] * { color: #FFFFFF !important; }
-
-/* Radio Button (Jika masih terpakai) */
 section[data-testid="stSidebar"] [data-testid="stRadioButton"] [role="radiogroup"] label div[role="radio"] {
     background-color: #FFE8DC !important;
     border: 2px solid #E86A22 !important;
@@ -273,19 +245,9 @@ if "v1_comments" not in st.session_state:
     st.session_state.v1_comments = []
 
 st.sidebar.markdown('<div style="font-size:22px; font-weight:800; color:#E86A22; margin-bottom:25px;">🍱 MBG Smart Monitor</div>', unsafe_allow_html=True)
-
-# Mengganti radio button biasa dengan selectbox (berkolaborasi dengan session_state)
-st.sidebar.selectbox(
-    "Menu", 
-    ["Dashboard", "Fruit Detector", "MBG Sentiment"], 
-    key="menu_v1"
-)
-
+page = st.sidebar.radio("Menu", ["Dashboard", "Fruit Detector", "MBG Sentiment"])
 st.sidebar.markdown("---")
 st.sidebar.caption("Version 1.0")
-
-# Mengambil status halaman aktif dari session_state
-page = st.session_state.menu_v1
 
 # =========================
 # PAGES
@@ -293,26 +255,21 @@ page = st.session_state.menu_v1
 if page == "Dashboard":
     render_header("🍱", "MBG Smart Monitor", "Monitoring dan analisis data MBG", "System Ready")
 
-    st.write("Selamat datang, Admin! Silakan pilih menu di bawah ini untuk memulai analisis.")
-
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("""
-        <div class="dashboard-card" style="height: 155px; margin-bottom:10px;">
+        <div class="dashboard-card">
             <div class="dashboard-title">🍎 Fruit Classification</div>
             <div class="dashboard-text">Menggunakan model CNN untuk mengklasifikasikan buah menjadi Apple atau Orange.</div>
+            <div class="model-status-badge">Model: CNN &nbsp;•&nbsp; Status: Ready</div>
         </div>""", unsafe_allow_html=True)
-        # Tombol interaktif
-        st.button("➜ Buka Fruit Detector", on_click=pindah_halaman, args=("Fruit Detector",), use_container_width=True)
-
     with col2:
         st.markdown("""
-        <div class="dashboard-card" style="height: 155px; margin-bottom:10px;">
+        <div class="dashboard-card">
             <div class="dashboard-title">💬 Feedback Analysis</div>
             <div class="dashboard-text">Menggunakan model Classic ML (TF-IDF + LinearSVC) untuk menganalisis sentimen feedback penerima MBG.</div>
+            <div class="model-status-badge">Model: Classic ML (TF-IDF + LinearSVC) &nbsp;•&nbsp; Status: Ready</div>
         </div>""", unsafe_allow_html=True)
-        # Tombol interaktif
-        st.button("➜ Buka Feedback Analysis", on_click=pindah_halaman, args=("MBG Sentiment",), use_container_width=True)
 
 elif page == "Fruit Detector":
     render_header("🍎", "Fruit Detector", "Klasifikasikan buah secara otomatis", "Model: V1 | Status: Ready")
