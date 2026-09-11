@@ -75,8 +75,14 @@ render_html("""
     section[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] [role="button"],
     section[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] [role="button"] * { color: #FFFFFF !important; }
     body [data-baseweb="menu"] [role="option"], body [data-baseweb="menu"] [role="option"] * { color: #FFFFFF !important; }
-    textarea::placeholder { color: #FFFFFF !important; opacity: 1 !important; }
-    textarea { color: #FFFFFF !important; }
+    section[data-testid="stTextArea"] textarea {
+        color: #808080 !important;
+    }
+
+    section[data-testid="stTextArea"] textarea::placeholder {
+        color: #A0A0A0 !important;
+        opacity: 1 !important;
+    }
     
     .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
     .header-left { display: flex; align-items: center; gap: 15px; }
