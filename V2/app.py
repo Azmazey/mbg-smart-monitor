@@ -76,21 +76,12 @@ render_html("""
     section[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] [role="button"] * { color: #FFFFFF !important; }
     body [data-baseweb="menu"] [role="option"], body [data-baseweb="menu"] [role="option"] * { color: #FFFFFF !important; }
     section[data-testid="stTextArea"] textarea {
-        background-color: #FFFFFF !important;
-        border: 1px solid #CFE9EE !important;
         color: #A0A0A0 !important;
-        font-weight: 500 !important;
-        border-radius: 12px !important;
     }
 
     section[data-testid="stTextArea"] textarea::placeholder {
         color: #A0A0A0 !important;
         opacity: 1 !important;
-    }
-
-    section[data-testid="stTextArea"] textarea:focus {
-        border-color: #7ECDD9 !important;
-        box-shadow: 0 0 0 2px rgba(126, 205, 217, 0.15) !important;
     }
     
     .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
