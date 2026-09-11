@@ -1,7 +1,4 @@
 import os
-import json
-import h5py
-import ast
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
@@ -26,6 +23,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FRUIT_MODEL_PATH = os.path.join(BASE_DIR, "models", "fruit_classifier", "fixed_mobilenetv2_apple_orange.h5")
 SENTIMENT_MODEL_PATH = os.path.join(BASE_DIR, "models", "sentiment_model")
 HISTORY_PATH = os.path.join(BASE_DIR, "data", "feedback_history.csv")
+
+IMG_SIZE = (128, 128)
 
 # =========================================================
 # HELPER & CUSTOM CSS (WARDAH / SOFT BLUE THEME)
@@ -108,56 +107,47 @@ render_html("""
 # =========================================================
 @st.cache_resource
 def load_fruit_model():
+    """
+    Membangun ulang arsitektur MobileNetV2 persis seperti saat training
+    (LAS Week 2, Soal 1: base_model frozen -> GlobalAveragePooling2D ->
+    Dropout(0.3) -> Dense(1, sigmoid)), lalu memuat HANYA bobotnya dari
+    file .h5 dengan model.load_weights().
+
+    Kenapa ini memperbaiki error 'str' object has no attribute 'as_list':
+    Error itu (dan sejenisnya seperti masalah "batch_shape"/"Functional" vs
+    "Model", DTypePolicy, dsb.) muncul karena file .h5 kamu disimpan dari
+    versi Keras yang lebih baru (kemungkinan Keras 3 di Colab) sedangkan
+    versi tensorflow-cpu==2.15.0 di deployment memakai Keras legacy (2.x).
+    Struktur JSON config antara kedua versi itu tidak 100% kompatibel, dan
+    akan selalu ada kemungkinan field lain yang belum ter-cover walau sudah
+    di-patch manual (seperti yang terjadi kemarin).
+
+    Solusinya: JANGAN baca config JSON dari file .h5 sama sekali. Definisikan
+    arsitektur langsung lewat kode Python (persis sama dengan notebook
+    training), lalu load_weights() hanya menimpa nilai bobot berdasarkan
+    nama layer -- proses ini tidak menyentuh JSON config yang bermasalah
+    sama sekali, sehingga selalu bekerja lintas versi TF/Keras.
+    """
     try:
-        with h5py.File(FRUIT_MODEL_PATH, mode="r") as f:
-            model_config_raw = f.attrs.get("model_config")
-            if isinstance(model_config_raw, bytes):
-                model_config_raw = model_config_raw.decode("utf-8")
-            config_dict = json.loads(model_config_raw)
+        base_model = tf.keras.applications.MobileNetV2(
+            input_shape=(*IMG_SIZE, 3),
+            include_top=False,
+            weights=None,  # tidak perlu unduh bobot imagenet -- akan ditimpa oleh load_weights() di bawah
+        )
+        base_model.trainable = False
 
-        def clean_config(obj):
-            if isinstance(obj, dict):
-                # 1. Keras 3 "Functional" ke "Model"
-                if obj.get("class_name") == "Functional":
-                    obj["class_name"] = "Model"
-                
-                # 2. DTypePolicy ke string biasa
-                if "dtype" in obj and isinstance(obj["dtype"], dict):
-                    obj["dtype"] = obj["dtype"].get("config", {}).get("name", "float32")
-                
-                # 3. FIX FINAL: Deteksi string aneh seperti "(None, 128, 128, 3)" dan paksa jadi List
-                for k, v in list(obj.items()):
-                    if isinstance(v, str) and (v.startswith("(") or v.startswith("[")):
-                        try:
-                            parsed_val = ast.literal_eval(v)
-                            if isinstance(parsed_val, (tuple, list)):
-                                obj[k] = list(parsed_val)
-                        except:
-                            pass
-                
-                # 4. Standardisasi batch_shape
-                if "batch_shape" in obj and "batch_input_shape" not in obj:
-                    obj["batch_input_shape"] = obj.pop("batch_shape")
-                    
-                # 5. Buang racun Keras 3
-                keys_to_delete = ["optional", "quantization_config", "is_legacy_optimizer", "groups", "registered_name", "module"]
-                for key in keys_to_delete:
-                    obj.pop(key, None)
-                    
-                return {k: clean_config(v) for k, v in obj.items()}
-            
-            elif isinstance(obj, list):
-                return [clean_config(item) for item in obj]
-            
-            return obj
+        inputs = tf.keras.Input(shape=(*IMG_SIZE, 3), name="image_input")
+        x = base_model(inputs, training=False)
+        x = tf.keras.layers.GlobalAveragePooling2D()(x)
+        x = tf.keras.layers.Dropout(0.30)(x)
+        outputs = tf.keras.layers.Dense(1, activation="sigmoid", name="binary_output")(x)
 
-        cleaned_config = clean_config(config_dict)
-        model = tf.keras.models.model_from_json(json.dumps(cleaned_config))
+        model = tf.keras.Model(inputs, outputs, name="MobileNetV2_TransferLearning")
         model.load_weights(FRUIT_MODEL_PATH)
         return model
-        
+
     except Exception as e:
-        st.error(f"Gagal membedah arsitektur. Log: {e}")
+        st.error(f"Gagal memuat model buah. Log: {e}")
         return None
 
 @st.cache_resource
@@ -168,7 +158,7 @@ def load_sentiment_model():
     return tokenizer, model
 
 def preprocess_image(image):
-    image = image.convert("RGB").resize((128, 128))
+    image = image.convert("RGB").resize(IMG_SIZE)
     image_array = np.expand_dims(np.array(image), axis=0)
     return tf.keras.applications.mobilenet_v2.preprocess_input(image_array)
 
