@@ -5,7 +5,7 @@ import h5py
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
-# Import torch dan transformers lebih dulu untuk mencegah segmentation fault
+# Import torch dan transformers lebih dulu
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
@@ -34,376 +34,71 @@ def render_html(content):
 
 render_html("""
 <style>
-    .stApp { 
-        background-color: #F4F9FA; 
-    }
-    .main .block-container { 
-        padding-top: 2rem; 
-        padding-bottom: 3rem; 
-        max-width: 1200px; 
-    }
-    h1, h2, h3, h4, p, div, span, label { 
-        font-family: "Inter", "Poppins", sans-serif; 
-        color: #102C3D; 
-    }
-    h1, h2, h3, h4 { 
-        color: #0C2331 !important; 
-    }
+    .stApp { background-color: #F4F9FA; }
+    .main .block-container { padding-top: 2rem; padding-bottom: 3rem; max-width: 1200px; }
+    h1, h2, h3, h4, p, div, span, label { font-family: "Inter", "Poppins", sans-serif; color: #102C3D; }
+    h1, h2, h3, h4 { color: #0C2331 !important; }
     
-    /* Sidebar styling */
-    section[data-testid="stSidebar"] { 
-        background-color: #FFFFFF; 
-        border-right: 1px solid #D6EBF0; 
-    }
-    section[data-testid="stSidebar"] * { 
-        color: #102C3D; 
-    }
-
-    /* ONLY: Navigation selected text */
+    section[data-testid="stSidebar"] { background-color: #FFFFFF; border-right: 1px solid #D6EBF0; }
+    section[data-testid="stSidebar"] * { color: #102C3D; }
     section[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] [role="button"],
-    section[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] [role="button"] * {
-        color: #FFFFFF !important;
-    }
-
-    /* ONLY: Navigation dropdown option text */
-    body [data-baseweb="menu"] [role="option"],
-    body [data-baseweb="menu"] [role="option"] * {
-        color: #FFFFFF !important;
-    }
-
-    /* ONLY: Feedback textarea placeholder text */
-    textarea::placeholder {
-        color: #FFFFFF !important;
-        opacity: 1 !important;
-    }
-
-    /* ONLY: Feedback textarea typed text */
-    textarea {
-        color: #FFFFFF !important;
-    }
+    section[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] [role="button"] * { color: #FFFFFF !important; }
+    body [data-baseweb="menu"] [role="option"], body [data-baseweb="menu"] [role="option"] * { color: #FFFFFF !important; }
+    textarea::placeholder { color: #FFFFFF !important; opacity: 1 !important; }
+    textarea { color: #FFFFFF !important; }
     
-    /* Headers & Status Badges */
-    .page-header { 
-        display: flex; 
-        justify-content: space-between; 
-        align-items: center; 
-        margin-bottom: 30px; 
-    }
-    .header-left { 
-        display: flex; 
-        align-items: center; 
-        gap: 15px; 
-    }
-    .header-icon { 
-        width: 50px; 
-        height: 50px; 
-        border-radius: 14px; 
-        background: #E0F4F7; 
-        display: flex; 
-        align-items: center; 
-        justify-content: center; 
-        font-size: 26px; 
-        border: 1px solid #B8E4EC;
-    }
-    .header-title { 
-        font-size: 32px; 
-        font-weight: 750; 
-        color: #0D2636; 
-        margin: 0; 
-    }
-    .header-subtitle { 
-        font-size: 14px; 
-        color: #4A6E7F; 
-        margin-top: 3px; 
-        font-weight: 500;
-    }
-    .status-badge { 
-        background: #E2F3F6; 
-        color: #1B5868; 
-        border-radius: 20px; 
-        padding: 8px 16px; 
-        font-size: 13px; 
-        font-weight: 700; 
-        border: 1px solid #B4E1EA; 
-    }
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+    .header-left { display: flex; align-items: center; gap: 15px; }
+    .header-icon { width: 50px; height: 50px; border-radius: 14px; background: #E0F4F7; display: flex; align-items: center; justify-content: center; font-size: 26px; border: 1px solid #B8E4EC; }
+    .header-title { font-size: 32px; font-weight: 750; color: #0D2636; margin: 0; }
+    .header-subtitle { font-size: 14px; color: #4A6E7F; margin-top: 3px; font-weight: 500; }
+    .status-badge { background: #E2F3F6; color: #1B5868; border-radius: 20px; padding: 8px 16px; font-size: 13px; font-weight: 700; border: 1px solid #B4E1EA; }
     
-    /* Cards */
-    .custom-card { 
-        background: #FFFFFF; 
-        border: 1px solid #CFE9EE; 
-        border-radius: 18px; 
-        padding: 24px; 
-        box-shadow: 0 6px 22px rgba(35, 95, 115, 0.05); 
-        margin-bottom: 20px; 
-    }
-    .card-title { 
-        font-size: 18px; 
-        font-weight: 750; 
-        color: #0E2838; 
-        margin-bottom: 6px; 
-    }
-    .card-description { 
-        font-size: 13px; 
-        color: #486E80; 
-        margin-bottom: 18px; 
-        line-height: 1.5;
-    }
+    .custom-card { background: #FFFFFF; border: 1px solid #CFE9EE; border-radius: 18px; padding: 24px; box-shadow: 0 6px 22px rgba(35, 95, 115, 0.05); margin-bottom: 20px; }
+    .card-title { font-size: 18px; font-weight: 750; color: #0E2838; margin-bottom: 6px; }
+    .card-description { font-size: 13px; color: #486E80; margin-bottom: 18px; line-height: 1.5; }
     
-    /* File Uploader Wardah Outline */
-    .upload-title { 
-        font-size: 15px; 
-        font-weight: 700; 
-        color: #102C3D; 
-        margin-bottom: 8px; 
-    }
-    [data-testid="stFileUploader"] { 
-        background: #FFFFFF; 
-        border: 2px dashed #7ECDD9 !important; 
-        border-radius: 18px; 
-        padding: 12px; 
-    }
-    [data-testid="stFileUploader"] section { 
-        background: #F2FAFB !important; 
-        border-radius: 14px; 
-    }
+    .upload-title { font-size: 15px; font-weight: 700; color: #102C3D; margin-bottom: 8px; }
+    [data-testid="stFileUploader"] { background: #FFFFFF; border: 2px dashed #7ECDD9 !important; border-radius: 18px; padding: 12px; }
+    [data-testid="stFileUploader"] section { background: #F2FAFB !important; border-radius: 14px; }
     
-    /* Buttons */
-    .stButton > button { 
-        background: linear-gradient(135deg, #3A92A6 0%, #2A798C 100%) !important; 
-        color: #FFFFFF !important; 
-        border-radius: 12px !important; 
-        font-weight: 700 !important; 
-        min-height: 46px !important; 
-        border: none !important; 
-        box-shadow: 0 4px 14px rgba(42, 121, 140, 0.25) !important;
-        transition: all 0.2s ease-in-out !important;
-    }
-    .stButton > button:hover { 
-        background: linear-gradient(135deg, #2D7B8E 0%, #1E6070 100%) !important;
-        color: #FFFFFF !important;
-        box-shadow: 0 6px 18px rgba(42, 121, 140, 0.35) !important;
-        transform: translateY(-1px);
-    }
+    .stButton > button { background: linear-gradient(135deg, #3A92A6 0%, #2A798C 100%) !important; color: #FFFFFF !important; border-radius: 12px !important; font-weight: 700 !important; min-height: 46px !important; border: none !important; box-shadow: 0 4px 14px rgba(42, 121, 140, 0.25) !important; transition: all 0.2s ease-in-out !important; }
+    .stButton > button:hover { background: linear-gradient(135deg, #2D7B8E 0%, #1E6070 100%) !important; color: #FFFFFF !important; box-shadow: 0 6px 18px rgba(42, 121, 140, 0.35) !important; transform: translateY(-1px); }
     
-    /* Results & Previews */
-    .result-card { 
-        background: #FFFFFF; 
-        border: 1px solid #CFE9EE; 
-        border-radius: 20px; 
-        padding: 25px; 
-        box-shadow: 0 8px 25px rgba(35, 95, 115, 0.06); 
-        margin-top: 20px; 
-    }
-    .fruit-preview { 
-        height: 250px; 
-        background: #F2F9FA; 
-        border-radius: 18px; 
-        display: flex; 
-        align-items: center; 
-        justify-content: center; 
-        font-size: 105px; 
-        border: 1px solid #DBF0F3; 
-    }
-    .result-label { 
-        font-size: 13px; 
-        font-weight: 600; 
-        color: #55798C; 
-        text-transform: uppercase; 
-        letter-spacing: 0.5px; 
-        margin-bottom: 4px; 
-    }
-    .result-value { 
-        font-size: 32px; 
-        font-weight: 800; 
-        color: #0E2B3D; 
-        margin-bottom: 22px; 
-    }
-    .confidence-label { 
-        font-size: 13px; 
-        font-weight: 600; 
-        color: #385E70; 
-        margin-bottom: 8px; 
-    }
-    .confidence-container { 
-        display: flex; 
-        align-items: center; 
-        gap: 12px; 
-    }
-    .confidence-bar { 
-        flex: 1; 
-        height: 13px; 
-        background: #E2F2F5; 
-        border-radius: 20px; 
-        overflow: hidden; 
-    }
-    .confidence-fill { 
-        height: 100%; 
-        background: linear-gradient(90deg, #4FB6C9, #2C7E92); 
-        border-radius: 20px; 
-    }
-    .confidence-percent { 
-        font-size: 16px; 
-        font-weight: 750; 
-        color: #103447; 
-        min-width: 65px; 
-        text-align: right; 
-    }
-    .fruit-indicator { 
-        font-size: 20px; 
-    }
+    .result-card { background: #FFFFFF; border: 1px solid #CFE9EE; border-radius: 20px; padding: 25px; box-shadow: 0 8px 25px rgba(35, 95, 115, 0.06); margin-top: 20px; }
+    .fruit-preview { height: 250px; background: #F2F9FA; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 105px; border: 1px solid #DBF0F3; }
+    .result-label { font-size: 13px; font-weight: 600; color: #55798C; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .result-value { font-size: 32px; font-weight: 800; color: #0E2B3D; margin-bottom: 22px; }
+    .confidence-label { font-size: 13px; font-weight: 600; color: #385E70; margin-bottom: 8px; }
+    .confidence-container { display: flex; align-items: center; gap: 12px; }
+    .confidence-bar { flex: 1; height: 13px; background: #E2F2F5; border-radius: 20px; overflow: hidden; }
+    .confidence-fill { height: 100%; background: linear-gradient(90deg, #4FB6C9, #2C7E92); border-radius: 20px; }
+    .confidence-percent { font-size: 16px; font-weight: 750; color: #103447; min-width: 65px; text-align: right; }
+    .fruit-indicator { font-size: 20px; }
     
-    /* Wardah Info Tags */
-    .menu-box { 
-        background: #ECF7F9; 
-        border: 1px solid #B8E4EC; 
-        border-radius: 12px; 
-        padding: 12px 18px; 
-        color: #1E5C6B; 
-        font-size: 13px; 
-        font-weight: 600; 
-        margin-top: 10px; 
-    }
-    .sentiment-header { 
-        display: flex; 
-        align-items: center; 
-        gap: 14px; 
-        margin-bottom: 6px; 
-    }
-    .sentiment-logo { 
-        width: 48px; 
-        height: 48px; 
-        background: #256B7D; 
-        border-radius: 14px; 
-        display: flex; 
-        align-items: center; 
-        justify-content: center; 
-        color: #FFFFFF; 
-        font-size: 24px; 
-        box-shadow: 0 4px 12px rgba(37, 107, 125, 0.2); 
-    }
-    .sentiment-title { 
-        font-size: 32px; 
-        font-weight: 750; 
-        color: #0C2331; 
-    }
-    .sentiment-description { 
-        color: #466C7E; 
-        font-size: 14px; 
-        margin-bottom: 8px; 
-        font-weight: 500;
-    }
-    .model-version { 
-        display: inline-block; 
-        background: #E1F2F5; 
-        color: #215D6D; 
-        padding: 5px 12px; 
-        border-radius: 12px; 
-        font-size: 12px; 
-        font-weight: 700; 
-        border: 1px solid #BCE3EB; 
-        margin-bottom: 24px; 
-    }
-    .sentiment-emoji { 
-        height: 200px; 
-        background: #F3F9FA; 
-        border: 1px solid #CFE9EE; 
-        border-radius: 18px; 
-        display: flex; 
-        align-items: center; 
-        justify-content: center; 
-        font-size: 90px; 
-    }
-    .sentiment-result { 
-        font-size: 26px; 
-        font-weight: 800; 
-        color: #0E2B3D; 
-        margin-bottom: 20px; 
-    }
-    .segmented-bar { 
-        display: flex; 
-        gap: 6px; 
-        width: 100%; 
-        margin-top: 10px; 
-    }
-    .segment { 
-        height: 12px; 
-        flex: 1; 
-        border-radius: 20px; 
-        background: #DCECF0; 
-    }
-    .segment.active { 
-        background: linear-gradient(90deg, #53BDD1, #2C7E92); 
-    }
-    .sentiment-percentage { 
-        font-size: 26px; 
-        font-weight: 800; 
-        color: #12374B; 
-        margin-top: 12px; 
-    }
-    .comment-box { 
-        background: #F4FAFB; 
-        border: 1px solid #C9E8EE; 
-        border-radius: 14px; 
-        padding: 16px; 
-        color: #163B4E; 
-        font-size: 14.5px; 
-        line-height: 1.6; 
-        font-weight: 500;
-    }
+    .menu-box { background: #ECF7F9; border: 1px solid #B8E4EC; border-radius: 12px; padding: 12px 18px; color: #1E5C6B; font-size: 13px; font-weight: 600; margin-top: 10px; }
+    .sentiment-header { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+    .sentiment-logo { width: 48px; height: 48px; background: #256B7D; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 24px; box-shadow: 0 4px 12px rgba(37, 107, 125, 0.2); }
+    .sentiment-title { font-size: 32px; font-weight: 750; color: #0C2331; }
+    .sentiment-description { color: #466C7E; font-size: 14px; margin-bottom: 8px; font-weight: 500; }
+    .model-version { display: inline-block; background: #E1F2F5; color: #215D6D; padding: 5px 12px; border-radius: 12px; font-size: 12px; font-weight: 700; border: 1px solid #BCE3EB; margin-bottom: 24px; }
+    .sentiment-emoji { height: 200px; background: #F3F9FA; border: 1px solid #CFE9EE; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 90px; }
+    .sentiment-result { font-size: 26px; font-weight: 800; color: #0E2B3D; margin-bottom: 20px; }
+    .segmented-bar { display: flex; gap: 6px; width: 100%; margin-top: 10px; }
+    .segment { height: 12px; flex: 1; border-radius: 20px; background: #DCECF0; }
+    .segment.active { background: linear-gradient(90deg, #53BDD1, #2C7E92); }
+    .sentiment-percentage { font-size: 26px; font-weight: 800; color: #12374B; margin-top: 12px; }
+    .comment-box { background: #F4FAFB; border: 1px solid #C9E8EE; border-radius: 14px; padding: 16px; color: #163B4E; font-size: 14.5px; line-height: 1.6; font-weight: 500; }
     
-    /* Metrics Summary Cards */
-    .summary-card { 
-        background: #FFFFFF; 
-        border: 1px solid #CFE9EE; 
-        border-radius: 18px; 
-        padding: 22px; 
-        box-shadow: 0 5px 20px rgba(35, 95, 115, 0.04); 
-    }
-    .summary-number { 
-        font-size: 30px; 
-        font-weight: 800; 
-        color: #143E50; 
-    }
-    .summary-label { 
-        color: #4C7385; 
-        font-size: 13px; 
-        font-weight: 600; 
-        margin-top: 2px;
-    }
+    .summary-card { background: #FFFFFF; border: 1px solid #CFE9EE; border-radius: 18px; padding: 22px; box-shadow: 0 5px 20px rgba(35, 95, 115, 0.04); }
+    .summary-number { font-size: 30px; font-weight: 800; color: #143E50; }
+    .summary-label { color: #4C7385; font-size: 13px; font-weight: 600; margin-top: 2px; }
     
-    /* Loader Wardah */
-    .loading-box { 
-        height: 250px; 
-        background: #F4F9FA; 
-        border-radius: 18px; 
-        display: flex; 
-        flex-direction: column; 
-        align-items: center; 
-        justify-content: center; 
-        border: 1px solid #D6EBF0; 
-    }
-    .loader { 
-        width: 44px; 
-        height: 44px; 
-        border: 4px solid #CEEFF4; 
-        border-top: 4px solid #2B7A8D; 
-        border-radius: 50%; 
-        animation: spin 1s linear infinite; 
-    }
-    @keyframes spin { 
-        0% { transform: rotate(0deg); } 
-        100% { transform: rotate(360deg); } 
-    }
-    .loading-text { 
-        margin-top: 14px; 
-        color: #386072; 
-        font-size: 13.5px; 
-        font-weight: 600; 
-    }
-    @media (max-width: 768px) { 
-        .page-header { flex-direction: column; align-items: flex-start; gap: 15px; } 
-        .header-title, .sentiment-title { font-size: 26px; } 
-    }
+    .loading-box { height: 250px; background: #F4F9FA; border-radius: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid #D6EBF0; }
+    .loader { width: 44px; height: 44px; border: 4px solid #CEEFF4; border-top: 4px solid #2B7A8D; border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .loading-text { margin-top: 14px; color: #386072; font-size: 13.5px; font-weight: 600; }
+    @media (max-width: 768px) { .page-header { flex-direction: column; align-items: flex-start; gap: 15px; } .header-title, .sentiment-title { font-size: 26px; } }
 </style>
 """)
 
@@ -412,7 +107,7 @@ render_html("""
 # =========================================================
 @st.cache_resource
 def load_fruit_model():
-    # Menggunakan metode Pembedahan Arsitektur JSON untuk mem-bypass error from_config
+    # STRATEGI 1: Pembedahan JSON & Translasi Arsitektur Keras 3 -> Keras 2
     try:
         with h5py.File(FRUIT_MODEL_PATH, mode="r") as f:
             model_config_raw = f.attrs.get("model_config")
@@ -420,28 +115,77 @@ def load_fruit_model():
                 model_config_raw = model_config_raw.decode("utf-8")
             config_dict = json.loads(model_config_raw)
 
-        # Fungsi rekursif untuk menyapu bersih semua keyword Keras 3
         def clean_config(obj):
             if isinstance(obj, dict):
+                # PERBAIKAN FATAL: Keras 3 "Functional" ditolak Keras 2, ubah ke "Model"
+                if obj.get("class_name") == "Functional":
+                    obj["class_name"] = "Model"
+                    
                 if "batch_shape" in obj and "batch_input_shape" not in obj:
                     obj["batch_input_shape"] = obj.pop("batch_shape")
-                for key in ["batch_shape", "optional", "quantization_config", "is_legacy_optimizer"]:
+                    
+                for key in ["batch_shape", "optional", "quantization_config", "is_legacy_optimizer", "groups", "registered_name", "module"]:
                     obj.pop(key, None)
+                    
                 return {k: clean_config(v) for k, v in obj.items()}
             elif isinstance(obj, list):
                 return [clean_config(item) for item in obj]
             return obj
 
         cleaned_config = clean_config(config_dict)
-        
-        # Bangun arsitektur MobileNetV2 yang steril, lalu muat bobotnya
         model = tf.keras.models.model_from_json(json.dumps(cleaned_config))
         model.load_weights(FRUIT_MODEL_PATH)
         return model
-    except Exception as e:
-        # Fallback biasa jika proses h5py gagal
-        return tf.keras.models.load_model(FRUIT_MODEL_PATH, compile=False)
+        
+    except Exception as json_err:
+        json_error_msg = str(json_err)
+        
+    # STRATEGI 2: Fallback dengan Interceptor untuk semua Layer pembentuk MobileNetV2
+    class TolerantInputLayer(tf.keras.layers.InputLayer):
+        @classmethod
+        def from_config(cls, config):
+            if "batch_shape" in config: config["batch_input_shape"] = config.pop("batch_shape")
+            for k in ["optional", "quantization_config"]: config.pop(k, None)
+            return super().from_config(config)
+            
+    class TolerantDense(tf.keras.layers.Dense):
+        @classmethod
+        def from_config(cls, config):
+            for k in ["optional", "quantization_config"]: config.pop(k, None)
+            return super().from_config(config)
 
+    class TolerantConv2D(tf.keras.layers.Conv2D):
+        @classmethod
+        def from_config(cls, config):
+            for k in ["optional", "quantization_config", "groups"]: config.pop(k, None)
+            return super().from_config(config)
+            
+    class TolerantDepthwiseConv2D(tf.keras.layers.DepthwiseConv2D):
+        @classmethod
+        def from_config(cls, config):
+            for k in ["optional", "quantization_config", "groups"]: config.pop(k, None)
+            return super().from_config(config)
+            
+    class TolerantBatchNorm(tf.keras.layers.BatchNormalization):
+        @classmethod
+        def from_config(cls, config):
+            for k in ["optional", "quantization_config"]: config.pop(k, None)
+            return super().from_config(config)
+
+    custom_objects = {
+        "InputLayer": TolerantInputLayer,
+        "Dense": TolerantDense,
+        "Conv2D": TolerantConv2D,
+        "DepthwiseConv2D": TolerantDepthwiseConv2D,
+        "BatchNormalization": TolerantBatchNorm,
+        "Functional": tf.keras.models.Model
+    }
+    
+    try:
+        return tf.keras.models.load_model(FRUIT_MODEL_PATH, compile=False, custom_objects=custom_objects)
+    except Exception as final_err:
+        st.error(f"Gagal memuat model V2.\\nLog 1: {json_error_msg}\\nLog 2: {final_err}")
+        return None
 
 @st.cache_resource
 def load_sentiment_model():
@@ -457,6 +201,8 @@ def preprocess_image(image):
 
 def predict_fruit(image):
     model = load_fruit_model()
+    if model is None:
+        return "Error", 0.0
     prediction = model.predict(preprocess_image(image), verbose=0)
     confidence = float(prediction[0][0])
     return ("Orange", confidence) if confidence >= 0.5 else ("Apple", 1 - confidence)
@@ -572,17 +318,18 @@ elif page == "Fruit Scan":
             result, confidence = predict_fruit(image)
             loading_ph.empty()
             
-            fruit_emoji = "🍎" if result == "Apple" else "🍊"
-            result_id = "Apel" if result == "Apple" else "Jeruk"
-            
-            menu_placeholder.markdown(f"""
+            if result != "Error":
+                fruit_emoji = "🍎" if result == "Apple" else "🍊"
+                result_id = "Apel" if result == "Apple" else "Jeruk"
+                
+                menu_placeholder.markdown(f"""
 <div style="display:flex; align-items:center; gap:8px; padding-top:8px; flex-wrap:wrap;">
     <span style="color:#1C4456; font-size:14px; font-weight:700;">Menu MBG hari ini:</span>
     <span style="background:#DCF3F7; color:#104754; border:1px solid #99DDE9; border-radius:10px; padding:7px 14px; font-size:13px; font-weight:800;">{result_id} {fruit_emoji}</span>
 </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
 
-            render_html(f"""
+                render_html(f"""
 <div class="result-card">
     <div style="font-size:18px; font-weight:750; color:#0E2B3D; margin-bottom:20px;">Hasil Analisis</div>
     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:25px;">
@@ -599,7 +346,7 @@ elif page == "Fruit Scan":
         </div>
     </div>
 </div>
-            """)
+                """)
 
 elif page == "Feedback Analysis":
     render_html("""
