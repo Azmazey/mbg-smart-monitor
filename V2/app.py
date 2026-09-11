@@ -1,4 +1,7 @@
 import os
+import json
+import h5py
+import ast
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
@@ -27,6 +30,16 @@ HISTORY_PATH = os.path.join(BASE_DIR, "data", "feedback_history.csv")
 IMG_SIZE = (128, 128)
 
 # =========================================================
+# SESSION STATE NAVIGATION
+# =========================================================
+# Inisialisasi state untuk navigasi halaman
+if "menu" not in st.session_state:
+    st.session_state.menu = "Dashboard"
+
+def pindah_halaman(halaman_tujuan):
+    st.session_state.menu = halaman_tujuan
+
+# =========================================================
 # HELPER & CUSTOM CSS (WARDAH / SOFT BLUE THEME)
 # =========================================================
 def render_html(content):
@@ -41,6 +54,21 @@ render_html("""
     
     section[data-testid="stSidebar"] { background-color: #FFFFFF; border-right: 1px solid #D6EBF0; }
     section[data-testid="stSidebar"] * { color: #102C3D; }
+    
+    /* Background Kotak untuk Tulisan Menu di Sidebar */
+    section[data-testid="stSidebar"] .stSelectbox label p {
+        background: linear-gradient(135deg, #3A92A6 0%, #2A798C 100%);
+        color: #FFFFFF !important;
+        padding: 10px 16px;
+        border-radius: 10px;
+        font-weight: 750;
+        font-size: 15px;
+        text-align: center;
+        width: 100%;
+        box-shadow: 0 4px 12px rgba(42, 121, 140, 0.2);
+        margin-bottom: 5px;
+    }
+
     section[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] [role="button"],
     section[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] [role="button"] * { color: #FFFFFF !important; }
     body [data-baseweb="menu"] [role="option"], body [data-baseweb="menu"] [role="option"] * { color: #FFFFFF !important; }
@@ -54,7 +82,7 @@ render_html("""
     .header-subtitle { font-size: 14px; color: #4A6E7F; margin-top: 3px; font-weight: 500; }
     .status-badge { background: #E2F3F6; color: #1B5868; border-radius: 20px; padding: 8px 16px; font-size: 13px; font-weight: 700; border: 1px solid #B4E1EA; }
     
-    .custom-card { background: #FFFFFF; border: 1px solid #CFE9EE; border-radius: 18px; padding: 24px; box-shadow: 0 6px 22px rgba(35, 95, 115, 0.05); margin-bottom: 20px; }
+    .custom-card { background: #FFFFFF; border: 1px solid #CFE9EE; border-radius: 18px; padding: 24px; box-shadow: 0 6px 22px rgba(35, 95, 115, 0.05); margin-bottom: 12px; }
     .card-title { font-size: 18px; font-weight: 750; color: #0E2838; margin-bottom: 6px; }
     .card-description { font-size: 13px; color: #486E80; margin-bottom: 18px; line-height: 1.5; }
     
@@ -76,7 +104,6 @@ render_html("""
     .confidence-percent { font-size: 16px; font-weight: 750; color: #103447; min-width: 65px; text-align: right; }
     .fruit-indicator { font-size: 20px; }
     
-    .menu-box { background: #ECF7F9; border: 1px solid #B8E4EC; border-radius: 12px; padding: 12px 18px; color: #1E5C6B; font-size: 13px; font-weight: 600; margin-top: 10px; }
     .sentiment-header { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
     .sentiment-logo { width: 48px; height: 48px; background: #256B7D; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 24px; box-shadow: 0 4px 12px rgba(37, 107, 125, 0.2); }
     .sentiment-title { font-size: 32px; font-weight: 750; color: #0C2331; }
@@ -90,7 +117,7 @@ render_html("""
     .sentiment-percentage { font-size: 26px; font-weight: 800; color: #12374B; margin-top: 12px; }
     .comment-box { background: #F4FAFB; border: 1px solid #C9E8EE; border-radius: 14px; padding: 16px; color: #163B4E; font-size: 14.5px; line-height: 1.6; font-weight: 500; }
     
-    .summary-card { background: #FFFFFF; border: 1px solid #CFE9EE; border-radius: 18px; padding: 22px; box-shadow: 0 5px 20px rgba(35, 95, 115, 0.04); }
+    .summary-card { background: #FFFFFF; border: 1px solid #CFE9EE; border-radius: 18px; padding: 22px; box-shadow: 0 5px 20px rgba(35, 95, 115, 0.04); margin-bottom: 15px;}
     .summary-number { font-size: 30px; font-weight: 800; color: #143E50; }
     .summary-label { color: #4C7385; font-size: 13px; font-weight: 600; margin-top: 2px; }
     
@@ -107,32 +134,12 @@ render_html("""
 # =========================================================
 @st.cache_resource
 def load_fruit_model():
-    """
-    Membangun ulang arsitektur MobileNetV2 persis seperti saat training
-    (LAS Week 2, Soal 1: base_model frozen -> GlobalAveragePooling2D ->
-    Dropout(0.3) -> Dense(1, sigmoid)), lalu memuat HANYA bobotnya dari
-    file .h5 dengan model.load_weights().
-
-    Kenapa ini memperbaiki error 'str' object has no attribute 'as_list':
-    Error itu (dan sejenisnya seperti masalah "batch_shape"/"Functional" vs
-    "Model", DTypePolicy, dsb.) muncul karena file .h5 kamu disimpan dari
-    versi Keras yang lebih baru (kemungkinan Keras 3 di Colab) sedangkan
-    versi tensorflow-cpu==2.15.0 di deployment memakai Keras legacy (2.x).
-    Struktur JSON config antara kedua versi itu tidak 100% kompatibel, dan
-    akan selalu ada kemungkinan field lain yang belum ter-cover walau sudah
-    di-patch manual (seperti yang terjadi kemarin).
-
-    Solusinya: JANGAN baca config JSON dari file .h5 sama sekali. Definisikan
-    arsitektur langsung lewat kode Python (persis sama dengan notebook
-    training), lalu load_weights() hanya menimpa nilai bobot berdasarkan
-    nama layer -- proses ini tidak menyentuh JSON config yang bermasalah
-    sama sekali, sehingga selalu bekerja lintas versi TF/Keras.
-    """
+    """Membangun arsitektur Python murni untuk mengatasi error Keras 3 ke 2"""
     try:
         base_model = tf.keras.applications.MobileNetV2(
             input_shape=(*IMG_SIZE, 3),
             include_top=False,
-            weights=None,  # tidak perlu unduh bobot imagenet -- akan ditimpa oleh load_weights() di bawah
+            weights=None,
         )
         base_model.trainable = False
 
@@ -193,9 +200,18 @@ def save_feedback(feedback, sentiment, confidence):
 # SIDEBAR
 # =========================================================
 render_html('<div style="font-size:22px; font-weight:750; color:#12374B; margin-bottom:25px;">🍱 MBG Smart Monitor</div>')
-page = st.sidebar.selectbox("Navigation", ["Dashboard", "Fruit Scan", "Feedback Analysis"])
+
+# Menggunakan state management agar sidebar sinkron dengan tombol dashboard
+st.sidebar.selectbox(
+    "Menu", 
+    ["Dashboard", "Fruit Scan", "Feedback Analysis"], 
+    key="menu"
+)
 st.sidebar.markdown("---")
 st.sidebar.caption("Version 2.0")
+
+# Mengambil status halaman aktif dari session_state
+page = st.session_state.menu
 
 # =========================================================
 # MAIN PAGES
@@ -213,29 +229,33 @@ if page == "Dashboard":
     <div class="status-badge">System Ready</div>
 </div>
     """)
-    st.write("Selamat datang, Admin!")
+    st.write("Selamat datang, Admin! Silakan pilih menu di bawah ini untuk memulai analisis.")
     
+    # KOTAK YANG BISA DIKLIK (INTERAKTIF)
     col1, col2 = st.columns(2)
     with col1:
         render_html("""
-<div class="custom-card">
+<div class="custom-card" style="height: 155px; margin-bottom:10px;">
     <div class="card-title">🍎 Fruit Classification</div>
-    <div class="card-description">Menggunakan model MobileNetV2 untuk mengklasifikasikan buah menjadi Apple atau Orange.</div>
-    <div class="menu-box">Model: MobileNetV2 &nbsp; • &nbsp; Status: Ready</div>
+    <div class="card-description">Pendeteksi otomatis kelayakan buah Apel dan Jeruk menggunakan model MobileNetV2.</div>
 </div>
         """)
+        st.button("➜ Buka Fruit Scan", on_click=pindah_halaman, args=("Fruit Scan",), use_container_width=True)
+
     with col2:
         render_html("""
-<div class="custom-card">
+<div class="custom-card" style="height: 155px; margin-bottom:10px;">
     <div class="card-title">💬 Feedback Analysis</div>
-    <div class="card-description">Menggunakan model Transformer untuk mendeteksi sentimen kepuasan penerima program MBG.</div>
-    <div class="menu-box">Model: Transformer &nbsp; • &nbsp; Status: Ready</div>
+    <div class="card-description">Mendeteksi tingkat kepuasan penerima program MBG dari teks dengan model Transformer.</div>
 </div>
         """)
+        st.button("➜ Buka Feedback Analysis", on_click=pindah_halaman, args=("Feedback Analysis",), use_container_width=True)
+
+    st.markdown("<hr style='border: 1px solid #D6EBF0; margin: 35px 0px;'>", unsafe_allow_html=True)
 
     if os.path.exists(HISTORY_PATH):
         history = pd.read_csv(HISTORY_PATH)
-        render_html('<div class="card-title" style="margin-top:15px; margin-bottom:12px;">Feedback Summary</div>')
+        render_html('<div class="card-title" style="margin-top:5px; margin-bottom:12px;">Feedback Summary</div>')
         c1, c2, c3 = st.columns(3)
         c1.markdown(f'<div class="summary-card"><div class="summary-number">{len(history)}</div><div class="summary-label">Total Feedback</div></div>', unsafe_allow_html=True)
         c2.markdown(f'<div class="summary-card"><div class="summary-number" style="color:#25879B;">{(history["sentiment"] == "Positive").sum()}</div><div class="summary-label">Positive Feedback</div></div>', unsafe_allow_html=True)
@@ -319,7 +339,7 @@ elif page == "Feedback Analysis":
 </div>
 <div class="sentiment-description">Klasifikasikan umpan balik penerima manfaat program MBG secara otomatis</div>
 <div class="model-version">Model Transformer V02</div>
-<div class="custom-card">
+<div class="custom-card" style="margin-bottom:15px;">
     <div class="card-title">Teks Feedback / Komentar</div>
     <div class="card-description">Ketik atau tempel opini publik atau siswa untuk dievaluasi tingkat kepuasannya.</div>
 </div>
