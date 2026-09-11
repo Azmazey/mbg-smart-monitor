@@ -1,7 +1,6 @@
 import os
 import h5py
 
-# Cukup matikan GPU dan optimasi bawaan, HAPUS flag legacy keras
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
@@ -10,7 +9,6 @@ import numpy as np
 import joblib
 from PIL import Image
 
-# Import langsung dari modul keras untuk menghindari lazy_loader ImportError
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, InputLayer
@@ -170,7 +168,6 @@ def load_fruit_model():
     path_root = os.path.join(os.path.dirname(BASE_DIR), "models", "fruit_classifier", "best_scratch_cnn_apple_orange.h5")
     model_path = path_inside if os.path.exists(path_inside) else path_root
 
-    # Bangun model tanpa tf.keras.Input untuk menghindari lazy loading error
     model = Sequential([
         InputLayer(input_shape=(128, 128, 3)),
         Conv2D(32, (3, 3), activation="relu", padding="same"),
@@ -188,7 +185,6 @@ def load_fruit_model():
     try:
         model.load_weights(model_path)
     except Exception:
-        # Suntikan manual jika format .h5 Keras 3 menolak dibaca Keras 2
         raw_weights = extract_weights_from_hdf5(model_path)
         all_tensors = []
         for layer_k in raw_weights:

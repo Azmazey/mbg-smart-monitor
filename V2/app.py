@@ -6,11 +6,8 @@ import ast
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
-# Import torch dan transformers lebih dulu
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
-
-# Import library lain setelahnya
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -77,6 +74,7 @@ render_html("""
     body [data-baseweb="menu"] [role="option"], body [data-baseweb="menu"] [role="option"] * { color: #FFFFFF !important; }
     section[data-testid="stTextArea"] textarea {
         color: #A0A0A0 !important;
+        opacity: 1 !important;
     }
 
     section[data-testid="stTextArea"] textarea::placeholder {
@@ -210,7 +208,6 @@ def save_feedback(feedback, sentiment, confidence):
 # =========================================================
 render_html('<div style="font-size:22px; font-weight:750; color:#12374B; margin-bottom:25px;">🍱 MBG Smart Monitor</div>')
 
-# Menggunakan state management agar sidebar sinkron dengan tombol dashboard
 st.sidebar.selectbox(
     "Menu", 
     ["Dashboard", "Fruit Scan", "Feedback Analysis"], 
@@ -219,7 +216,6 @@ st.sidebar.selectbox(
 st.sidebar.markdown("---")
 st.sidebar.caption("Version 2.0")
 
-# Mengambil status halaman aktif dari session_state
 page = st.session_state.menu
 
 # =========================================================
@@ -240,7 +236,6 @@ if page == "Dashboard":
     """)
     st.write("Selamat datang, Admin! Silakan pilih menu di bawah ini untuk memulai analisis.")
     
-    # KOTAK YANG BISA DIKLIK (INTERAKTIF)
     col1, col2 = st.columns(2)
     with col1:
         render_html("""
