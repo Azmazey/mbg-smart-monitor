@@ -1,6 +1,7 @@
 import os
 import json
 import h5py
+import ast
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
@@ -116,20 +117,21 @@ def load_fruit_model():
 
         def clean_config(obj):
             if isinstance(obj, dict):
-                # 1. Keras 3 "Functional" to "Model"
+                # 1. Keras 3 "Functional" ke "Model"
                 if obj.get("class_name") == "Functional":
                     obj["class_name"] = "Model"
                 
-                # 2. DTypePolicy struct to string (Mencegah Unknown dtype policy)
+                # 2. DTypePolicy ke string biasa
                 if "dtype" in obj and isinstance(obj["dtype"], dict):
                     obj["dtype"] = obj["dtype"].get("config", {}).get("name", "float32")
                 
-                # 3. Mencegah error 'str object has no attribute as_list'
-                for shape_key in ["batch_shape", "batch_input_shape", "target_shape"]:
-                    if shape_key in obj and isinstance(obj[shape_key], str):
+                # 3. FIX FINAL: Deteksi string aneh seperti "(None, 128, 128, 3)" dan paksa jadi List
+                for k, v in list(obj.items()):
+                    if isinstance(v, str) and (v.startswith("(") or v.startswith("[")):
                         try:
-                            # Mengubah string "[None, 128, 128, 3]" kembali jadi list asli
-                            obj[shape_key] = json.loads(obj[shape_key].replace("None", "null").replace("'", '"'))
+                            parsed_val = ast.literal_eval(v)
+                            if isinstance(parsed_val, (tuple, list)):
+                                obj[k] = list(parsed_val)
                         except:
                             pass
                 
@@ -137,7 +139,7 @@ def load_fruit_model():
                 if "batch_shape" in obj and "batch_input_shape" not in obj:
                     obj["batch_input_shape"] = obj.pop("batch_shape")
                     
-                # 5. Hapus semua keyword Keras 3 yang beracun
+                # 5. Buang racun Keras 3
                 keys_to_delete = ["optional", "quantization_config", "is_legacy_optimizer", "groups", "registered_name", "module"]
                 for key in keys_to_delete:
                     obj.pop(key, None)
@@ -155,7 +157,7 @@ def load_fruit_model():
         return model
         
     except Exception as e:
-        st.error(f"Gagal membedah arsitektur model. Hubungi Developer. Log: {e}")
+        st.error(f"Gagal membedah arsitektur. Log: {e}")
         return None
 
 @st.cache_resource
