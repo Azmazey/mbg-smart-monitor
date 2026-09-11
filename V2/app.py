@@ -59,14 +59,17 @@ render_html("""
     section[data-testid="stSidebar"] .stSelectbox label p {
         background: linear-gradient(135deg, #3A92A6 0%, #2A798C 100%);
         color: #FFFFFF !important;
-        padding: 10px 16px;
-        border-radius: 10px;
+
+        padding: 6px 10px;
+        border-radius: 8px;
         font-weight: 750;
-        font-size: 15px;
+        font-size: 13px;
         text-align: center;
-        width: 100%;
-        box-shadow: 0 4px 12px rgba(42, 121, 140, 0.2);
-        margin-bottom: 5px;
+
+        width: fit-content;
+        margin: 0 auto 5px auto;
+
+        box-shadow: 0 3px 8px rgba(42, 121, 140, 0.2);
     }
 
     section[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] [role="button"],
@@ -240,7 +243,7 @@ if page == "Dashboard":
     <div class="card-description">Pendeteksi otomatis kelayakan buah Apel dan Jeruk menggunakan model MobileNetV2.</div>
 </div>
         """)
-        st.button("➜ Buka Fruit Scan", on_click=pindah_halaman, args=("Fruit Scan",), use_container_width=True)
+        st.button("➜Fruit Scan", on_click=pindah_halaman, args=("Fruit Scan",), use_container_width=True)
 
     with col2:
         render_html("""
@@ -249,7 +252,7 @@ if page == "Dashboard":
     <div class="card-description">Mendeteksi tingkat kepuasan penerima program MBG dari teks dengan model Transformer.</div>
 </div>
         """)
-        st.button("➜ Buka Feedback Analysis", on_click=pindah_halaman, args=("Feedback Analysis",), use_container_width=True)
+        st.button("➜ Feedback Analysis", on_click=pindah_halaman, args=("Feedback Analysis",), use_container_width=True)
 
     st.markdown("<hr style='border: 1px solid #D6EBF0; margin: 35px 0px;'>", unsafe_allow_html=True)
 
