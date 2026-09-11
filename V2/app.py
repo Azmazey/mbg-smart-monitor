@@ -274,17 +274,18 @@ if page == "Dashboard":
 
 elif page == "Fruit Scan":
     render_html("""
-<div class="page-header">
-    <div>
-        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-            <div class="header-title">Fruit Detector</div>
-            <span style="color:#4A7182; font-size:14px; font-weight:600;">Klasifikasikan jenis buah secara otomatis</span>
+    <div class="page-header">
+        <div class="header-left">
+            <div class="header-icon">🍎</div>
+            <div>
+                <div class="header-title">Fruit Scan</div>
+                <div class="header-subtitle">Klasifikasikan jenis buah secara otomatis</div>
+            </div>
         </div>
+        <div class="status-badge">Model: V2 | Status: Ready</div>
     </div>
-    <div class="status-badge">Model: V2 | Status: Ready</div>
-</div>
-<div class="upload-title">Upload Foto:</div>
-    """)
+    <div class="upload-title">Upload Foto:</div>
+        """)
     uploaded_file = st.file_uploader("Upload File", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
 
     if uploaded_file is not None:
@@ -343,7 +344,7 @@ elif page == "Fruit Scan":
 elif page == "Feedback Analysis":
     render_html("""
 <div class="sentiment-header">
-    <div class="sentiment-logo">✦</div>
+    <div class="sentiment-logo">💬</div>
     <div class="sentiment-title">MBG Sentiment</div>
 </div>
 <div class="sentiment-description">Klasifikasikan umpan balik penerima manfaat program MBG secara otomatis</div>
