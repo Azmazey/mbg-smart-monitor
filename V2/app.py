@@ -87,6 +87,11 @@ render_html("""
         color: #A0A0A0 !important;
         opacity: 1 !important;
     }
+
+    section[data-testid="stTextArea"] textarea:focus {
+        border-color: #7ECDD9 !important;
+        box-shadow: 0 0 0 2px rgba(126, 205, 217, 0.15) !important;
+    }
     
     .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
     .header-left { display: flex; align-items: center; gap: 15px; }
