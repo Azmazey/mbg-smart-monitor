@@ -107,7 +107,6 @@ render_html("""
 # =========================================================
 @st.cache_resource
 def load_fruit_model():
-    # STRATEGI 1: Pembedahan JSON & Translasi Arsitektur Keras 3 -> Keras 2
     try:
         with h5py.File(FRUIT_MODEL_PATH, mode="r") as f:
             model_config_raw = f.attrs.get("model_config")
@@ -115,77 +114,46 @@ def load_fruit_model():
                 model_config_raw = model_config_raw.decode("utf-8")
             config_dict = json.loads(model_config_raw)
 
+        # Fungsi pembersih JSON canggih: mengubah struktur Keras 3 kembali ke Keras 2
         def clean_config(obj):
             if isinstance(obj, dict):
-                # PERBAIKAN FATAL: Keras 3 "Functional" ditolak Keras 2, ubah ke "Model"
+                # 1. Ubah Keras 3 "Functional" menjadi "Model"
                 if obj.get("class_name") == "Functional":
                     obj["class_name"] = "Model"
+                
+                # 2. Hancurkan DTypePolicy rumit Keras 3 menjadi string biasa (FIX FATAL ERROR)
+                if "dtype" in obj and isinstance(obj["dtype"], dict):
+                    # Ambil string 'float32' dari dalam dictionary
+                    obj["dtype"] = obj["dtype"].get("config", {}).get("name", "float32")
                     
+                # 3. Samakan penamaan batch shape
                 if "batch_shape" in obj and "batch_input_shape" not in obj:
                     obj["batch_input_shape"] = obj.pop("batch_shape")
                     
-                for key in ["batch_shape", "optional", "quantization_config", "is_legacy_optimizer", "groups", "registered_name", "module"]:
+                # 4. Hapus sisa-sisa atribut aneh Keras 3
+                keys_to_delete = ["optional", "quantization_config", "is_legacy_optimizer", "groups", "registered_name", "module"]
+                for key in keys_to_delete:
                     obj.pop(key, None)
                     
                 return {k: clean_config(v) for k, v in obj.items()}
+            
             elif isinstance(obj, list):
                 return [clean_config(item) for item in obj]
+            
             return obj
 
+        # Eksekusi pembersihan
         cleaned_config = clean_config(config_dict)
+        
+        # Bangun arsitektur & isi bobot
         model = tf.keras.models.model_from_json(json.dumps(cleaned_config))
         model.load_weights(FRUIT_MODEL_PATH)
         return model
         
-    except Exception as json_err:
-        json_error_msg = str(json_err)
-        
-    # STRATEGI 2: Fallback dengan Interceptor untuk semua Layer pembentuk MobileNetV2
-    class TolerantInputLayer(tf.keras.layers.InputLayer):
-        @classmethod
-        def from_config(cls, config):
-            if "batch_shape" in config: config["batch_input_shape"] = config.pop("batch_shape")
-            for k in ["optional", "quantization_config"]: config.pop(k, None)
-            return super().from_config(config)
-            
-    class TolerantDense(tf.keras.layers.Dense):
-        @classmethod
-        def from_config(cls, config):
-            for k in ["optional", "quantization_config"]: config.pop(k, None)
-            return super().from_config(config)
-
-    class TolerantConv2D(tf.keras.layers.Conv2D):
-        @classmethod
-        def from_config(cls, config):
-            for k in ["optional", "quantization_config", "groups"]: config.pop(k, None)
-            return super().from_config(config)
-            
-    class TolerantDepthwiseConv2D(tf.keras.layers.DepthwiseConv2D):
-        @classmethod
-        def from_config(cls, config):
-            for k in ["optional", "quantization_config", "groups"]: config.pop(k, None)
-            return super().from_config(config)
-            
-    class TolerantBatchNorm(tf.keras.layers.BatchNormalization):
-        @classmethod
-        def from_config(cls, config):
-            for k in ["optional", "quantization_config"]: config.pop(k, None)
-            return super().from_config(config)
-
-    custom_objects = {
-        "InputLayer": TolerantInputLayer,
-        "Dense": TolerantDense,
-        "Conv2D": TolerantConv2D,
-        "DepthwiseConv2D": TolerantDepthwiseConv2D,
-        "BatchNormalization": TolerantBatchNorm,
-        "Functional": tf.keras.models.Model
-    }
-    
-    try:
-        return tf.keras.models.load_model(FRUIT_MODEL_PATH, compile=False, custom_objects=custom_objects)
-    except Exception as final_err:
-        st.error(f"Gagal memuat model V2.\\nLog 1: {json_error_msg}\\nLog 2: {final_err}")
+    except Exception as e:
+        st.error(f"Gagal membedah arsitektur model: {e}")
         return None
+
 
 @st.cache_resource
 def load_sentiment_model():
