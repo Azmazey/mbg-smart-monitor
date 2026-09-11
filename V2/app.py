@@ -241,7 +241,7 @@ if page == "Dashboard":
         render_html("""
 <div class="custom-card" style="height: 155px; margin-bottom:10px;">
     <div class="card-title">🍎 Fruit Classification</div>
-    <div class="card-description">Pendeteksi otomatis kelayakan buah Apel dan Jeruk menggunakan model MobileNetV2.</div>
+    <div class="card-description">Mengklasifikasikan jenis buah (Apel/Jeruk) secara otomatis untuk kelengkapan menu MBG menggunakan model MobileNetV2.</div>
 </div>
         """)
         st.button("➜Fruit Scan", on_click=pindah_halaman, args=("Fruit Scan",), use_container_width=True)
