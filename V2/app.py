@@ -114,23 +114,30 @@ def load_fruit_model():
                 model_config_raw = model_config_raw.decode("utf-8")
             config_dict = json.loads(model_config_raw)
 
-        # Fungsi pembersih JSON canggih: mengubah struktur Keras 3 kembali ke Keras 2
         def clean_config(obj):
             if isinstance(obj, dict):
-                # 1. Ubah Keras 3 "Functional" menjadi "Model"
+                # 1. Keras 3 "Functional" to "Model"
                 if obj.get("class_name") == "Functional":
                     obj["class_name"] = "Model"
                 
-                # 2. Hancurkan DTypePolicy rumit Keras 3 menjadi string biasa (FIX FATAL ERROR)
+                # 2. DTypePolicy struct to string (Mencegah Unknown dtype policy)
                 if "dtype" in obj and isinstance(obj["dtype"], dict):
-                    # Ambil string 'float32' dari dalam dictionary
                     obj["dtype"] = obj["dtype"].get("config", {}).get("name", "float32")
-                    
-                # 3. Samakan penamaan batch shape
+                
+                # 3. Mencegah error 'str object has no attribute as_list'
+                for shape_key in ["batch_shape", "batch_input_shape", "target_shape"]:
+                    if shape_key in obj and isinstance(obj[shape_key], str):
+                        try:
+                            # Mengubah string "[None, 128, 128, 3]" kembali jadi list asli
+                            obj[shape_key] = json.loads(obj[shape_key].replace("None", "null").replace("'", '"'))
+                        except:
+                            pass
+                
+                # 4. Standardisasi batch_shape
                 if "batch_shape" in obj and "batch_input_shape" not in obj:
                     obj["batch_input_shape"] = obj.pop("batch_shape")
                     
-                # 4. Hapus sisa-sisa atribut aneh Keras 3
+                # 5. Hapus semua keyword Keras 3 yang beracun
                 keys_to_delete = ["optional", "quantization_config", "is_legacy_optimizer", "groups", "registered_name", "module"]
                 for key in keys_to_delete:
                     obj.pop(key, None)
@@ -142,18 +149,14 @@ def load_fruit_model():
             
             return obj
 
-        # Eksekusi pembersihan
         cleaned_config = clean_config(config_dict)
-        
-        # Bangun arsitektur & isi bobot
         model = tf.keras.models.model_from_json(json.dumps(cleaned_config))
         model.load_weights(FRUIT_MODEL_PATH)
         return model
         
     except Exception as e:
-        st.error(f"Gagal membedah arsitektur model: {e}")
+        st.error(f"Gagal membedah arsitektur model. Hubungi Developer. Log: {e}")
         return None
-
 
 @st.cache_resource
 def load_sentiment_model():
