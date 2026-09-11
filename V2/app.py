@@ -234,14 +234,14 @@ if page == "Dashboard":
     <div class="status-badge">System Ready</div>
 </div>
     """)
-    st.write("Selamat datang, Admin! Silakan pilih menu di bawah ini untuk memulai analisis.")
+    st.write("Selamat datang! Silakan pilih menu di bawah ini untuk memulai analisis.")
     
     col1, col2 = st.columns(2)
     with col1:
         render_html("""
 <div class="custom-card" style="height: 155px; margin-bottom:10px;">
     <div class="card-title">🍎 Fruit Classification</div>
-    <div class="card-description">Mengklasifikasikan jenis buah (Apel/Jeruk) secara otomatis untuk kelengkapan menu MBG menggunakan model MobileNetV2.</div>
+    <div class="card-description">Mengklasifikasikan jenis buah (Apel/Jeruk) secara otomatis untuk menu MBG menggunakan model MobileNetV2.</div>
 </div>
         """)
         st.button("➜Fruit Scan", on_click=pindah_halaman, args=("Fruit Scan",), use_container_width=True)
@@ -250,7 +250,7 @@ if page == "Dashboard":
         render_html("""
 <div class="custom-card" style="height: 155px; margin-bottom:10px;">
     <div class="card-title">💬 Feedback Analysis</div>
-    <div class="card-description">Mendeteksi tingkat kepuasan penerima program MBG dari teks dengan model Transformer.</div>
+    <div class="card-description">Klasifikasikan feedback masyarakat (Positif, Negatif, Netral) dengan model Transformer.</div>
 </div>
         """)
         st.button("➜ Feedback Analysis", on_click=pindah_halaman, args=("Feedback Analysis",), use_container_width=True)

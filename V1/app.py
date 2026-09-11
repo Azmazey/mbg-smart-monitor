@@ -241,7 +241,7 @@ if "v1_comments" not in st.session_state:
     st.session_state.v1_comments = []
 
 st.sidebar.markdown('<div style="font-size:22px; font-weight:800; color:#E86A22; margin-bottom:25px;">🍱 MBG Smart Monitor</div>', unsafe_allow_html=True)
-page = st.sidebar.radio("Menu", ["Dashboard", "Fruit Detector", "MBG Sentiment"])
+page = st.sidebar.radio("Menu", ["Dashboard", "Fruit Scan", "MBG Sentiment"])
 st.sidebar.markdown("---")
 st.sidebar.caption("Version 1.0")
 
@@ -267,8 +267,8 @@ if page == "Dashboard":
             <div class="model-status-badge">Model: Classic ML (TF-IDF + LinearSVC) &nbsp;•&nbsp; Status: Ready</div>
         </div>""", unsafe_allow_html=True)
 
-elif page == "Fruit Detector":
-    render_header("🍎", "Fruit Detector", "Klasifikasikan buah secara otomatis", "Model: V1 | Status: Ready")
+elif page == "Fruit Scan":
+    render_header("🍎", "Fruit Scan", "Mengklasifikasikan jenis buah (Apel/Jeruk) secara otomatis untuk menu MBG", "Model: V1 | Status: Ready")
     st.markdown('<div class="upload-title">Upload Foto:</div>', unsafe_allow_html=True)
     uploaded_file = st.file_uploader("Upload gambar", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
 
