@@ -1,0 +1,25 @@
+MBG SMART MONITOR - SENTIMENT ANALYSIS V2
+==========================================
+
+Version: V2
+Model: IndoBERT
+Task: MBG Social Media Sentiment Classification
+Dataset: 4,453 labeled comments
+Classes: Negative, Neutral, Positive
+Base Model: indobenchmark/indobert-base-p1
+Training Epochs: 4
+
+Evaluation:
+- Holdout Macro F1: 0.904210
+
+Improvement from V1:
+The TF-IDF + LinearSVC model was replaced with IndoBERT,
+a transformer-based model better suited for Indonesian
+language understanding.
+
+Additional Application Feature:
+V2 includes persistent feedback history stored in
+feedback_history.csv.
+
+Application:
+https://mbg-monitor-v2.streamlit.app/

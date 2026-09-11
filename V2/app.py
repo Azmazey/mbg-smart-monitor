@@ -1,8 +1,11 @@
 import os
+import json
+import h5py
+
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
-# Import torch dan transformers lebih dulu
+# Import torch dan transformers lebih dulu untuk mencegah segmentation fault
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
@@ -12,8 +15,6 @@ import pandas as pd
 import numpy as np
 from PIL import Image
 import tensorflow as tf
-
-
 
 # =========================================================
 # PAGE CONFIG & PATHS
@@ -28,14 +29,6 @@ HISTORY_PATH = os.path.join(BASE_DIR, "data", "feedback_history.csv")
 # =========================================================
 # HELPER & CUSTOM CSS (WARDAH / SOFT BLUE THEME)
 # =========================================================
-# Palette Guide:
-# - Primary Accent: #3A92A6 (Wardah Deep Cyan / Ocean Teal)
-# - Soft Accent / Fill: #5CB6C9 & #8FD3DE
-# - Light Backgrounds: #F2F8F9 & #E6F3F5
-# - Dark High-Contrast Text: #0F2937 (Headers) & #204051 (Body)
-# - Subdued Text: #4A6E7F
-# - Borders: #BCE2E8 & #D3EDF2
-
 def render_html(content):
     st.markdown(content.strip(), unsafe_allow_html=True)
 
@@ -419,12 +412,36 @@ render_html("""
 # =========================================================
 @st.cache_resource
 def load_fruit_model():
-    class CompatibleDense(tf.keras.layers.Dense):
-        @classmethod
-        def from_config(cls, config):
-            config.pop("quantization_config", None)
-            return super().from_config(config)
-    return tf.keras.models.load_model(FRUIT_MODEL_PATH, compile=False, custom_objects={"Dense": CompatibleDense})
+    # Menggunakan metode Pembedahan Arsitektur JSON untuk mem-bypass error from_config
+    try:
+        with h5py.File(FRUIT_MODEL_PATH, mode="r") as f:
+            model_config_raw = f.attrs.get("model_config")
+            if isinstance(model_config_raw, bytes):
+                model_config_raw = model_config_raw.decode("utf-8")
+            config_dict = json.loads(model_config_raw)
+
+        # Fungsi rekursif untuk menyapu bersih semua keyword Keras 3
+        def clean_config(obj):
+            if isinstance(obj, dict):
+                if "batch_shape" in obj and "batch_input_shape" not in obj:
+                    obj["batch_input_shape"] = obj.pop("batch_shape")
+                for key in ["batch_shape", "optional", "quantization_config", "is_legacy_optimizer"]:
+                    obj.pop(key, None)
+                return {k: clean_config(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [clean_config(item) for item in obj]
+            return obj
+
+        cleaned_config = clean_config(config_dict)
+        
+        # Bangun arsitektur MobileNetV2 yang steril, lalu muat bobotnya
+        model = tf.keras.models.model_from_json(json.dumps(cleaned_config))
+        model.load_weights(FRUIT_MODEL_PATH)
+        return model
+    except Exception as e:
+        # Fallback biasa jika proses h5py gagal
+        return tf.keras.models.load_model(FRUIT_MODEL_PATH, compile=False)
+
 
 @st.cache_resource
 def load_sentiment_model():
@@ -639,10 +656,6 @@ elif page == "Feedback Analysis":
         p_pct = (pos / total) * 100 if total else 0
         n_pct = (neg / total) * 100 if total else 0
         
-        # Wardah Soft Blue Donut Palette:
-        # Positive: #3A99AC (Wardah Deep Cyan)
-        # Negative: #D96874 (Soft Muted Coral/Red)
-        # Neutral: #8DB5C4 (Soft Slate Blue)
         gradient = f"conic-gradient(#3A99AC 0% {p_pct}%, #D96874 {p_pct}% {p_pct + n_pct}%, #8DB5C4 {p_pct + n_pct}% 100%)"
 
         col1, col2 = st.columns([2, 1])

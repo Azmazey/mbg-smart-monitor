@@ -1,1 +1,12 @@
 /V2/venv
+/mlruns
+/V2/mlruns
+/V2/mlruns
+/V2/mlruns
+*.db
+/V2/mlruns
+V2/mlruns/1/models/m-5313e821e58a4840bad2584ffff7ad39/artifacts/MLmodel
+/V2/mlruns
+/V2/mlruns
+/V2/mlruns
+/V2/mlruns/1

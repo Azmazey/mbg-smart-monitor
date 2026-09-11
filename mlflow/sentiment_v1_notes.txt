@@ -1,0 +1,35 @@
+MBG SMART MONITOR - SENTIMENT ANALYSIS V1
+==========================================
+
+Version: V1
+Model: TF-IDF + LinearSVC
+Task: MBG Social Media Sentiment Classification
+Dataset: 4,453 labeled comments
+Classes: Negative, Neutral, Positive
+
+Preprocessing:
+- Lowercase text
+- URL replacement with <URL>
+- Mention replacement with <USER>
+- Repeated character reduction
+- Whitespace cleanup
+
+Feature Representation:
+- Word n-grams (1,3)
+- Character n-grams (3,5)
+- FeatureUnion
+
+Model Selection:
+- Logistic Regression
+- ComplementNB
+- LinearSVC
+LinearSVC achieved the best cross-validation Macro F1.
+
+Evaluation:
+- Holdout Macro F1: 0.806458
+
+Role in Versioning:
+Baseline classic NLP model.
+
+Application:
+https://mbg-monitor-v1.streamlit.app/

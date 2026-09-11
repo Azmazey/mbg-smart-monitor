@@ -1,0 +1,18 @@
+MBG SMART MONITOR - FRUIT CLASSIFICATION V1
+============================================
+
+Version: V1
+Model: CNN From Scratch
+Task: Apple vs Orange Classification
+Dataset: 796 images
+Input Size: 128x128
+
+Evaluation:
+- Accuracy: 91.67%
+- F1 Score: 91.80%
+
+Role in Versioning:
+Baseline computer vision model.
+
+Application:
+https://mbg-monitor-v1.streamlit.app/

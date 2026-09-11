@@ -1,0 +1,20 @@
+MBG SMART MONITOR - FRUIT CLASSIFICATION V2
+============================================
+
+Version: V2
+Model: MobileNetV2
+Task: Apple vs Orange Classification
+Dataset: 796 images
+Input Size: 224x224
+Preprocessing: MobileNetV2 preprocess_input
+
+Evaluation:
+- Accuracy: 95.00%
+- F1 Score: 94.74%
+
+Improvement from V1:
+The CNN From Scratch model was replaced with MobileNetV2
+using transfer learning.
+
+Application:
+https://mbg-monitor-v2.streamlit.app/
