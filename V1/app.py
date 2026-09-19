@@ -290,7 +290,7 @@ elif page == "Fruit Scan":
                 <div class="result-title">Hasil Analisis</div>
                 <div class="result-label">Hasil:</div>
                 <div class="result-value">{fruit}</div>
-                <div class="confidence-label">Akurasi:</div>
+                <div class="confidence-label">Confidence:</div>
                 <div class="confidence-container">
                     <div class="confidence-bar"><div class="confidence-fill" style="width: {conf_pct}%;"></div></div>
                     <div class="confidence-percent">{conf_pct:.2f}%</div>

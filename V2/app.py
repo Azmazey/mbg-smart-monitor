@@ -325,7 +325,7 @@ elif page == "Fruit Scan":
         <div style="display:flex; flex-direction:column; justify-content:center;">
             <div class="result-label">Hasil Prediksi:</div>
             <div class="result-value">{result}</div>
-            <div class="confidence-label">Tingkat Keyakinan:</div>
+            <div class="confidence-label"> Confidence:</div>
             <div class="confidence-container">
                 <div class="confidence-bar"><div class="confidence-fill" style="width: {confidence*100}%;"></div></div>
                 <div class="confidence-percent">{confidence*100:.2f}%</div>
@@ -375,7 +375,7 @@ elif page == "Feedback Analysis":
         <div>
             <div class="result-label">Sentimen Terdeteksi:</div>
             <div class="sentiment-result">{sentiment}</div>
-            <div class="confidence-label">Tingkat Keyakinan:</div>
+            <div class="confidence-label"> Confidence:</div>
             <div class="segmented-bar">
                 <div class="segment active"></div><div class="segment active"></div><div class="segment active"></div><div class="segment active"></div>
             </div>
