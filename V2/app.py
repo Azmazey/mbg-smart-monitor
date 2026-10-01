@@ -286,7 +286,7 @@ elif page == "Fruit Scan":
     if uploaded_file is not None:
         image = Image.open(uploaded_file)
         render_html('<div class="card-description" style="color:#205C6B; font-weight:600;">✓ Foto berhasil diunggah</div>')
-        st.image(image, caption="Foto yang diunggah", use_container_width=True)
+        st.image(image, caption="Foto yang diunggah", width=350)
         
         col1, col2 = st.columns([1, 2])
         with col1:
